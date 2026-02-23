@@ -1,0 +1,49 @@
+--- PAGE 1 ---
+E x e r c i s e  -  P r o t o t y p i n g  w i t h  S t r e a m l i t
+I n s t r u c t i o n s
+Propose an idea that involves data or AI and that represents an interesting and useful new
+feature for an existing or fictitious product. It can be some feature that you think would bring
+some value (e.g. book recommendation feature on Linkedin), or it can be inspired by an
+existing feature of a product that does not work so well (see, for example, slide 54 of Lecture
+1). If you participated in the Discussion forum activity and you're happy with your initial
+prototyping, you can build on this idea.
+A  mandatory requirement is that data and/or AI should be at the center  of the value
+enabled by that feature.
+R e c o m m e n d a t i o n s
+.
+.
+.
+Learning goal
+Develop skills in prototyping with Streamlit "by doing"
+Instructions
+Once you have the idea, develop a Streamlit prototype that shows how the model
+would be used to help a user achieve the desired purpose  and push the code to a
+repository .
+T ry to avoid making "just an app that displays data or predictions" , and think of the
+purpose of the prototype, as discussed in Lecture 1.
+Use widgets that have not been used in the last class.  Remember checking the
+Streamlit API Reference. Advanced users mastering Python / Github / etc can try to
+create their own widgets (if you create an own widget, make sure it brings value to the
+app -- a typical prototyping mistake is to add something without purpose).
+The Streamlit app should be usable but should also make sense visually , or at least
+should be well-organized (think both about interaction and layout widgets).
+In general, try to think about the three aspects of an AI prototype discussed in class:
+appearance or user experience, data/model pipeline, and accuracy . Also consider
+the dif ferent prototyping mindsets discussed in Lecture 1.
+--- PAGE 2 ---
+D e l i v e r a b l e s
+Submit through Moodle:
+R e m i n d e r :  P u s h i n g  t h e  c o d e  t o  a  r e p o s i t o r y
+Exporting your model
+If you use a machine learning model, try to separate any of fline part (e.g. training) from
+the prototype "runtime" for ef ficiency . Also remember it is a good practice to separate
+the "prediction logic" from the prototype, as seen in the Cloud Computing course.
+1. The link to a repository where the code is hosted.
+2. The link showcasing the Streamlit app. The most basic option is to share a video. As a
+more advanced option, you can use any of the tools mentioned in the class slides.
+3. A  2-page document in your own words describing the process you followed to create the
+prototype. This includes how you used AI to help building your prototype.
+Create an empty repository in your Github account (can be public or private).
+After creating the repository , git will provide some instructions on how to push your files.
+Y ou can also follow these instructions .
+T o learn more about github, feel free to complete the Github concepts  datacamp course.
