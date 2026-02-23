@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from utils.data_fetcher import fetch_historical_data, fetch_current_prices
-from utils.portfolio_metrics import calculate_volatility, calculate_beta, calculate_hhi, calculate_risk_score
+from utils.portfolio_metrics import calculate_portfolio_volatility, calculate_portfolio_beta, calculate_hhi_index, assess_risk_score
 
 def render_suggestions():
     st.markdown("<h1>Risk Analysis & Suggestions</h1>", unsafe_allow_html=True)
@@ -35,14 +35,19 @@ def render_suggestions():
         valid_tickers_for_risk = [t for t in tickers if t in prices_df.columns]
         
         if len(valid_tickers_for_risk) > 0 and len(prices_df) > 50:
-            volatility = calculate_volatility(prices_df[valid_tickers_for_risk], weights)
-            beta = calculate_beta(prices_df[valid_tickers_for_risk], weights) # Note: beta might be 1.0 if SPY fails to load
-            hhi = calculate_hhi(weights)
-            risk_score = calculate_risk_score(volatility, beta, hhi)
+            volatility = calculate_portfolio_volatility(prices_df[valid_tickers_for_risk], weights)
+            try:
+                spy_df = fetch_historical_data(['SPY'], period='1y')
+                mkt = spy_df['SPY'] if 'SPY' in spy_df else prices_df.iloc[:, 0]
+                beta = calculate_portfolio_beta(prices_df[valid_tickers_for_risk], mkt, weights)
+            except Exception:
+                beta = 1.0
+            hhi = calculate_hhi_index(weights)
+            risk_score = assess_risk_score(volatility, hhi, beta, total_value)
         else:
             volatility = 0.0
             beta = 1.0
-            hhi = calculate_hhi(weights)
+            hhi = calculate_hhi_index(weights)
             risk_score = 50 # Default middle
             st.warning("Not enough historical data to calculate full risk metrics.")
             
