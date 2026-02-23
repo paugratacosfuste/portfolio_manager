@@ -24,4 +24,4 @@ __pycache__/
 *.pkl
 *.sqlite3
 
-.claude
+.claude/
