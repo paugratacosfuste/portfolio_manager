@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from utils.data_fetcher import get_current_prices, get_historical_data
+from utils.data_fetcher import fetch_current_prices, fetch_historical_data
 
 def render_dashboard():
     st.markdown("<h1>Dashboard: Reality Check</h1>", unsafe_allow_html=True)
@@ -17,7 +17,7 @@ def render_dashboard():
     tickers = list(holdings.keys())
     
     with st.spinner("Fetching current market data..."):
-        prices = get_current_prices(tickers)
+        prices = fetch_current_prices(tickers)
         
     # Calculate Total Value & Weights
     total_value = 0.0
@@ -67,7 +67,7 @@ def render_dashboard():
     with col2:
         st.markdown("### 1-Year Historical Performance (Normalized)")
         with st.spinner("Fetching historical data..."):
-            hist_data = get_historical_data(tickers, period='1y')
+            hist_data = fetch_historical_data(tickers, period='1y')
             
         if not hist_data.empty:
             # Normalize to 100 at start

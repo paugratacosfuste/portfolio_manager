@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import pickle
 import os
-from utils.data_fetcher import get_news
+from utils.data_fetcher import fetch_recent_news
 from utils.ai_advisor import generate_news_summary
 
 def render_news():
@@ -55,7 +55,7 @@ def render_news():
     
     with st.spinner("Fetching news..."):
         for ticker in tickers[:5]: # Limit to top 5 assets to save time/API calls
-            news_items = get_news(ticker)
+            news_items = fetch_recent_news([ticker], limit=5)[ticker]
             for item in news_items:
                 all_news.append({
                     'Ticker': ticker,

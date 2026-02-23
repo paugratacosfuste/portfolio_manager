@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from utils.data_fetcher import get_historical_data, get_current_prices
+from utils.data_fetcher import fetch_historical_data, fetch_current_prices
 from utils.portfolio_metrics import calculate_volatility, calculate_beta, calculate_hhi, calculate_risk_score
 
 def render_suggestions():
@@ -19,8 +19,8 @@ def render_suggestions():
     
     with st.spinner("Calculating Risk Metrics..."):
         # Fetch 1y data for risk calculations
-        prices_df = get_historical_data(tickers, period='1y')
-        current_prices = get_current_prices(tickers)
+        prices_df = fetch_historical_data(tickers, period='1y')
+        current_prices = fetch_current_prices(tickers)
         
         # Calculate weights
         weights = {}
