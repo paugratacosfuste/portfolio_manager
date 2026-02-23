@@ -4,7 +4,7 @@ import plotly.express as px
 from utils.data_fetcher import fetch_current_prices, fetch_historical_data
 
 def render_dashboard():
-    st.markdown("<h1>Dashboard: Reality Check</h1>", unsafe_allow_html=True)
+    st.markdown("<h1>Portfolio Overview</h1>", unsafe_allow_html=True)
     st.markdown("<p>Welcome to your portfolio overview. Let's see how your current allocation is performing.</p>", unsafe_allow_html=True)
     
     holdings = st.session_state.holdings

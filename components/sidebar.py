@@ -9,7 +9,6 @@ def render_sidebar():
     """
     
     with st.sidebar:
-        st.image("https://img.icons8.com/color/96/000000/line-chart.png", width=60)
         st.markdown("<h2 style='color: #0B1F3A; margin-top: 0;'>Portfolio Setup</h2>", unsafe_allow_html=True)
         st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
         

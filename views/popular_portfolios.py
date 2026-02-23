@@ -226,12 +226,24 @@ def render_popular_portfolios():
         col1, col2 = st.columns([1, 1.5])
 
         with col1:
-            st.markdown(f"#### {selected_name}")
-            st.markdown(f"*{selected_portfolio['desc']}*")
-            df_standard = pd.DataFrame(
-                list(selected_portfolio["weights"].items()), columns=["Asset Class", "Weight"]
-            )
-            st.table(df_standard)
+            st.markdown(f"<div style='font-weight:700; font-size:1.1rem; color:#0B1F3A; margin-bottom:5px;'>{selected_name}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='font-size:0.85rem; color:#666; margin-bottom:15px; min-height:40px;'>{selected_portfolio['desc']}</div>", unsafe_allow_html=True)
+            
+            # Format allocations for pills and pie
+            alloc_data = []
+            allocs_html = []
+            
+            for i, (asset, weight_str) in enumerate(selected_portfolio["weights"].items()):
+                w_val = float(weight_str.replace('%', ''))
+                alloc_data.append((asset, w_val))
+                color = PIE_COLORS[i % len(PIE_COLORS)]
+                allocs_html.append(f"<div style='border-left: 4px solid {color}; background:#F8FAFC; padding:4px 8px; border-radius:4px; font-size:0.8rem; font-weight:600; color:#0B1F3A; display:flex; align-items:center; gap:6px;'>{asset} <span style='font-weight:400; color:#666;'>{w_val}%</span></div>")
+                
+            pills = f"<div style='display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; margin-bottom:10px;'>{''.join(allocs_html)}</div>"
+            
+            with st.container(border=True):
+                st.plotly_chart(_build_pie(alloc_data), use_container_width=True, key=f"pie_bench_{selected_name}")
+                st.markdown(pills, unsafe_allow_html=True)
 
         with col2:
             st.markdown("#### AI Compare & Contrast")

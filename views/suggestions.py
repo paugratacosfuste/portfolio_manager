@@ -131,7 +131,7 @@ def render_suggestions():
 
     # ── ALLOCATION COMPARISON ───────────────────────────────────────────────
     st.markdown("### Allocation Gap Analysis")
-    st.markdown("<p style='color:#666; font-size:0.9rem;'>Visualizing the mismatch between your current allocation (blue bars) and your risk-adjusted targets (black markers). Actions are suggested if a category is off by more than 5%.</p>", unsafe_allow_html=True)
+    st.markdown("<p style='color:#666; font-size:0.9rem;'>Visualizing the mismatch between your current allocation (max opacity) and your risk-adjusted targets (lower opacity). Actions are suggested if a category is off by more than 3%.</p>", unsafe_allow_html=True)
     
     def render_comparison_bars(current_dict, target_dict, title):
         curr_perc = {k: v * 100 for k, v in current_dict.items()}
@@ -145,7 +145,7 @@ def render_suggestions():
             t_val = target_dict.get(k, 0)
             diff = c_val - t_val
             
-            if diff > 5:
+            if diff > 3:
                 status_color = "#C44536" # Red
                 status_text = f"Reduce by {diff:.1f}%"
                 base_color = "#C44536"
