@@ -13,14 +13,20 @@ def fetch_current_prices(tickers: List[str]) -> Dict[str, float]:
         return prices
     
     try:
-        data = yf.download(tickers, period="1d", progress=False)
+        data = yf.download(tickers, period="5d", progress=False) # Get 5 days to ensure we have a valid last close
         if 'Close' in data:
+            close_data = data['Close'].ffill()
             for ticker in tickers:
                 if len(tickers) == 1:
-                    price = float(data['Close'].iloc[-1])
+                    price = float(close_data.iloc[-1])
                 else:
-                    price = float(data['Close'][ticker].iloc[-1])
-                prices[ticker] = price
+                    price = float(close_data[ticker].iloc[-1])
+                
+                # Check for NaN and set to 0.0 if invalid
+                if pd.isna(price):
+                    prices[ticker] = 0.0
+                else:
+                    prices[ticker] = price
     except Exception as e:
         print(f"Error fetching current prices: {e}")
     
@@ -64,11 +70,21 @@ def fetch_recent_news(tickers: List[str], limit: int = 5) -> Dict[str, List[Dict
             news = t.news[:limit] if hasattr(t, 'news') else []
             summarized_news = []
             for item in news:
+                content = item.get('content', {})
+                title = item.get('title') or content.get('title', 'No Title')
+                publisher = item.get('publisher') or content.get('provider', {}).get('displayName', 'Unknown')
+                link = item.get('link') or content.get('clickThroughUrl', {}).get('url', '#') or '#'
+                pub_time = item.get('providerPublishTime', 0)
+                if pub_time:
+                    timestamp = datetime.datetime.fromtimestamp(pub_time).strftime('%Y-%m-%d %H:%M')
+                else:
+                    pub_date = content.get('pubDate', '')
+                    timestamp = pub_date[:16] if pub_date else 'Unknown'
                 summarized_news.append({
-                    "title": item.get('title', 'No Title'),
-                    "link": item.get('link', '#'),
-                    "publisher": item.get('publisher', 'Unknown'),
-                    "timestamp": datetime.datetime.fromtimestamp(item.get('providerPublishTime', 0)).strftime('%Y-%m-%d %H:%M')
+                    "title": title,
+                    "link": link,
+                    "publisher": publisher,
+                    "timestamp": timestamp
                 })
             news_dict[ticker] = summarized_news
         except Exception as e:

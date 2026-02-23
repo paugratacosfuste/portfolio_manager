@@ -4,8 +4,8 @@ import plotly.express as px
 from utils.data_fetcher import fetch_current_prices, fetch_historical_data
 
 def render_dashboard():
-    st.markdown("<h1>Dashboard: Reality Check</h1>", unsafe_allow_html=True)
-    st.markdown("<p>Welcome to your portfolio overview. Let's see how your current allocation is performing.</p>", unsafe_allow_html=True)
+    st.title("Dashboard: Reality Check")
+    st.write("Welcome to your portfolio overview. Let's see how your current allocation is performing.")
     
     holdings = st.session_state.holdings
     profile = st.session_state.profile
@@ -38,13 +38,14 @@ def render_dashboard():
     # Top Level Metrics
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.markdown(f"<p>Total Portfolio Value</p><p class='big-number'>${total_value:,.2f}</p>", unsafe_allow_html=True)
+        st.metric("Total Portfolio Value", f"${total_value:,.2f}")
     with col2:
-        st.markdown(f"<p>Top Asset</p><p class='medium-number'>{df_portfolio.loc[df_portfolio['Value'].idxmax(), 'Ticker'] if not df_portfolio.empty and total_value > 0 else 'N/A'}</p>", unsafe_allow_html=True)
+        top_asset = df_portfolio.loc[df_portfolio['Value'].idxmax(), 'Ticker'] if not df_portfolio.empty and total_value > 0 else 'N/A'
+        st.metric("Top Asset", top_asset)
     with col3:
-        st.markdown(f"<p>Stated Risk Tolerance</p><p class='medium-number'>{profile['risk_tolerance']}</p>", unsafe_allow_html=True)
-        
-    st.markdown("<br>", unsafe_allow_html=True)
+        st.metric("Stated Risk Tolerance", profile['risk_tolerance'])
+
+    st.markdown("")
     
     # Visualizations
     col1, col2 = st.columns([1, 1.5])
@@ -70,31 +71,36 @@ def render_dashboard():
             st.info("Portfolio value is zero.")
             
     with col2:
-        st.markdown("### Historical Value")
+        st.markdown("### 1-Year Historical Performance (Normalized)")
         with st.spinner("Fetching historical data..."):
             hist_data = fetch_historical_data(tickers, period='1y')
             
         if not hist_data.empty:
-            # Calculate total portfolio value over time
+            # Normalize to 100 at start
+            normalized = (hist_data / hist_data.iloc[0]) * 100
+            
+            # Simple portfolio baseline (equal weight for visualization purposes if actual weights get complex)
+            # Better: Calculate weighted portfolio value over time
             port_history = pd.Series(0.0, index=hist_data.index)
             for ticker in tickers:
                 if ticker in hist_data.columns:
                     # Value of that holding over time
                     qty = holdings[ticker]
-                    # fill missing prices with previous day to avoid zero-drops
-                    filled_history = hist_data[ticker].ffill().fillna(0)
-                    port_history += filled_history * qty
+                    port_history += hist_data[ticker] * qty
                     
-            fig = px.area(
-                x=port_history.index, 
-                y=port_history.values,
-                color_discrete_sequence=['#3A6EA5']
+            normalized['Your Portfolio'] = (port_history / port_history.iloc[0]) * 100 if port_history.iloc[0] > 0 else 0
+            
+            fig = px.line(
+                normalized, 
+                y='Your Portfolio',
+                color_discrete_sequence=['#0B1F3A']
             )
+            # Add benchmark (e.g., S&P 500 equivalent if fetched, otherwise just show portfolio)
             fig.update_layout(
                 xaxis_title="Date",
-                yaxis_title="Total Value ($)",
+                yaxis_title="Normalized Value (Baseline 100)",
                 margin=dict(t=0, b=0, l=0, r=0),
-                showlegend=False,
+                legend_title_text='',
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)'
             )
@@ -105,7 +111,6 @@ def render_dashboard():
     st.markdown("### Holdings Details")
     st.dataframe(
         df_portfolio.style.format({
-            'Quantity': '{:.2f}',
             'Price': '${:.2f}',
             'Value': '${:.2f}',
             'Weight (%)': '{:.1f}%'

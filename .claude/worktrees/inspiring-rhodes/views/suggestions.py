@@ -5,8 +5,8 @@ from utils.data_fetcher import fetch_historical_data, fetch_current_prices
 from utils.portfolio_metrics import calculate_portfolio_volatility, calculate_portfolio_beta, calculate_hhi_index, assess_risk_score
 
 def render_suggestions():
-    st.markdown("<h1>Risk Analysis & Suggestions</h1>", unsafe_allow_html=True)
-    st.markdown("<p>Analyzing the gap between your stated risk tolerance and mathematical portfolio risk.</p>", unsafe_allow_html=True)
+    st.title("Risk Analysis & Suggestions")
+    st.write("Analyzing the gap between your stated risk tolerance and mathematical portfolio risk.")
     
     holdings = st.session_state.holdings
     profile = st.session_state.profile
@@ -98,5 +98,5 @@ def render_suggestions():
                 user_profile=profile,
                 eli10_mode=st.session_state.get('eli10_mode', False)
             )
-            
+
             st.info(f"**Claude's Analysis:**\n\n{advice}")

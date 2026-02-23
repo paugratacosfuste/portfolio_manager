@@ -6,7 +6,18 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 /* Base styling */
-* {
+*:not(i):not([class*="icon"]):not([class*="Icon"]):not([class*="material"]):not(summary span):not([data-testid="stExpanderToggleIcon"]) {
+    font-family: 'Inter', sans-serif !important;
+}
+
+/* Explicit fallback to fix Streamlit's expander arrow ligature */
+summary span,
+[data-testid="stExpanderToggleIcon"] {
+    font-family: 'Material Symbols Rounded', sans-serif !important;
+}
+
+summary p,
+summary .stMarkdown {
     font-family: 'Inter', sans-serif !important;
 }
 
@@ -16,14 +27,17 @@
 }
 
 /* Typography Colors */
-h1, h2, h3, h4, h5, h6 {
-    color: #0B1F3A !important; /* Deep Navy for headers */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    color: #0B1F3A !important;
+    /* Deep Navy for headers */
     font-weight: 600 !important;
 }
 
-p, span, div, label {
-    color: #1E1E1E; /* Charcoal for primary text */
-}
 
 /* Numeric Emphasis */
 .big-number {
@@ -42,25 +56,29 @@ p, span, div, label {
 
 /* Performance Colors */
 .positive-value {
-    color: #1F8A70 !important; /* Emerald Green */
+    color: #1F8A70 !important;
+    /* Emerald Green */
     font-weight: 600;
 }
 
 .negative-value {
-    color: #C44536 !important; /* Muted Red */
+    color: #C44536 !important;
+    /* Muted Red */
     font-weight: 600;
 }
 
 /* Sidebar Styling */
 section[data-testid="stSidebar"] {
     background-color: #FFFFFF !important;
-    border-right: 1px solid #D9D9D9; /* Light Gray Dividers */
+    border-right: 1px solid #D9D9D9;
+    /* Light Gray Dividers */
 }
 
 /* Buttons */
-.stButton > button {
+.stButton>button {
     background-color: #0B1F3A !important;
     color: #FFFFFF !important;
+    -webkit-text-fill-color: #FFFFFF !important;
     border-radius: 8px !important;
     border: none !important;
     font-weight: 500 !important;
@@ -68,12 +86,14 @@ section[data-testid="stSidebar"] {
     transition: background-color 0.2s;
 }
 
-.stButton > button:hover {
-    background-color: #3A6EA5 !important; /* Steel Blue hover */
+.stButton>button:hover {
+    background-color: #3A6EA5 !important;
+    /* Steel Blue hover */
 }
 
 /* Cards / Containers */
-div.css-1r6slb0, div.stForm, .stExpander {
+div.stForm,
+.stExpander {
     background-color: #FFFFFF !important;
     border-radius: 12px !important;
     border: 1px solid #D9D9D9 !important;
@@ -83,14 +103,18 @@ div.css-1r6slb0, div.stForm, .stExpander {
 }
 
 /* Input Fields */
-input, select, textarea {
+input,
+select,
+textarea {
     border-radius: 6px !important;
     border: 1px solid #D9D9D9 !important;
     background-color: #FFFFFF !important;
     color: #1E1E1E !important;
 }
 
-input:focus, select:focus, textarea:focus {
+input:focus,
+select:focus,
+textarea:focus {
     border-color: #3A6EA5 !important;
     box-shadow: 0 0 0 1px #3A6EA5 !important;
 }

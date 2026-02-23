@@ -9,7 +9,7 @@ def render_macro_radar():
     st.markdown("<p>Understand how macroeconomic headwinds or tailwinds affect your portfolio.</p>", unsafe_allow_html=True)
     
     # ML TRANSPARENCY SECTION
-    with st.expander("ℹ️ About the Machine Learning Model (Transparency)"):
+    with st.expander("About the Machine Learning Model (Transparency)"):
         st.markdown("""
         **Model Overview:**
         This prediction is powered by a **Random Forest Classifier** trained entirely offline.
@@ -48,6 +48,7 @@ def render_macro_radar():
                 data = data['Close']
                 
             df = data.dropna(how='all').ffill().dropna()
+            df = df[['^GSPC', '^TNX', '^VIX', 'DX-Y.NYB']].copy()
             df.columns = ['SP500', 'US10Y', 'VIX', 'DXY']
             
             df['SP500_Return'] = df['SP500'].pct_change()
@@ -64,21 +65,27 @@ def render_macro_radar():
             
             col1, col2 = st.columns(2)
             with col1:
-                st.markdown("<div style='background-color:#FFFFFF; padding:1.5rem; border-radius:10px; border: 1px solid #D9D9D9; text-align:center;'>", unsafe_allow_html=True)
-                st.markdown("<h5>Predicted Scenario</h5>", unsafe_allow_html=True)
-                if prediction == 1:
-                    st.markdown("<h2 style='color:#C44536;'>Market Correction Risk</h2>", unsafe_allow_html=True)
-                else:
-                    st.markdown("<h2 style='color:#1F8A70;'>Market Stable</h2>", unsafe_allow_html=True)
-                st.markdown("</div>", unsafe_allow_html=True)
+                color = "#C44536" if prediction == 1 else "#1F8A70"
+                text = "Market Correction Risk" if prediction == 1 else "Market Stable"
+                html1 = f"""
+                <div style='background-color:#FFFFFF; padding:1.5rem; border-radius:10px; border: 1px solid #D9D9D9; text-align:center;'>
+                    <h5>Predicted Scenario</h5>
+                    <h2 style='color:{color};'>{text}</h2>
+                </div>
+                """
+                st.markdown(html1, unsafe_allow_html=True)
                 
             with col2:
-                st.markdown("<div style='background-color:#FFFFFF; padding:1.5rem; border-radius:10px; border: 1px solid #D9D9D9; text-align:center;'>", unsafe_allow_html=True)
-                st.markdown("<h5>Probability of Correction</h5>", unsafe_allow_html=True)
-                st.markdown(f"<h2 style='color:#0B1F3A;'>{probability*100:.1f}%</h2>", unsafe_allow_html=True)
-                st.markdown("</div>", unsafe_allow_html=True)
+                html2 = f"""
+                <div style='background-color:#FFFFFF; padding:1.5rem; border-radius:10px; border: 1px solid #D9D9D9; text-align:center;'>
+                    <h5>Probability of Correction</h5>
+                    <h2 style='color:#0B1F3A;'>{probability*100:.1f}%</h2>
+                </div>
+                """
+                st.markdown(html2, unsafe_allow_html=True)
                 
             # Explain with Claude
+            st.markdown("<br><br>", unsafe_allow_html=True)
             if st.button("Get AI Macro Analysis"):
                 from utils.ai_advisor import client
                 if client:

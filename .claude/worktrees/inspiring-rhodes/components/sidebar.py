@@ -1,6 +1,27 @@
 import streamlit as st
 import pandas as pd
-from utils.data_fetcher import fetch_current_prices
+
+# Common crypto symbols that need -USD suffix for Yahoo Finance
+CRYPTO_TICKERS = {
+    "BTC", "ETH", "SOL", "ADA", "DOT", "LINK", "AVAX", "MATIC", "XRP",
+    "DOGE", "SHIB", "UNI", "AAVE", "LTC", "BCH", "ATOM", "NEAR", "FTM",
+    "ALGO", "XLM", "VET", "MANA", "SAND", "AXS", "CRO", "FIL", "APE",
+    "ICP", "EOS", "XTZ", "THETA", "HNT", "ZEC", "DASH", "NEO", "COMP",
+    "MKR", "SNX", "SUSHI", "YFI", "BAT", "ENJ", "GRT", "ONE", "RUNE",
+    "CAKE", "LUNA", "TRX", "BNB", "POL", "ARB", "OP", "SUI", "APT",
+    "SEI", "TIA", "JUP", "PEPE", "WIF", "BONK", "RENDER", "FET", "TAO",
+}
+
+def normalize_ticker(ticker: str) -> str:
+    """Normalizes a ticker symbol. Appends -USD for known crypto symbols."""
+    ticker = ticker.strip().upper()
+    # If already has -USD suffix, return as is
+    if ticker.endswith("-USD"):
+        return ticker
+    # If it's a known crypto ticker, append -USD
+    if ticker in CRYPTO_TICKERS:
+        return f"{ticker}-USD"
+    return ticker
 
 def render_sidebar():
     """
@@ -22,11 +43,11 @@ def render_sidebar():
             value="Moderate",
             help="Higher risk tolerance allows for more volatility in exchange for potential higher returns."
         )
-        horizon = st.radio(
+        horizon = st.selectbox(
             "Investment Horizon",
-            ["Trading (< 1 year)", "Short-term (1-5 years)", "Mid-term (5-10 years)", "Long-term (10+ years)"],
-            index=2,
-            help="How long do you plan to hold these investments before needing the cash?"
+            ["Short-term (1-3 years)", "Medium-term (3-7 years)", "Long-term (7+ years)"],
+            index=1,
+            help="How long to you plan to hold these investments before needing the cash?"
         )
         
         st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
@@ -39,19 +60,10 @@ def render_sidebar():
         if 'holdings_df' not in st.session_state:
             st.session_state.holdings_df = pd.DataFrame(
                 [
-                    # 4 Stocks
                     {"Ticker": "AAPL", "Quantity": 50.0},
                     {"Ticker": "MSFT", "Quantity": 30.0},
                     {"Ticker": "JNJ", "Quantity": 100.0},
-                    {"Ticker": "NVDA", "Quantity": 20.0},
-                    # 2 ETFs
-                    {"Ticker": "SPY", "Quantity": 15.0},
-                    {"Ticker": "QQQ", "Quantity": 15.0},
-                    # 2 Cryptos
-                    {"Ticker": "BTC-USD", "Quantity": 0.5},
-                    {"Ticker": "ETH-USD", "Quantity": 5.0},
-                    # 1 Bond
-                    {"Ticker": "BND", "Quantity": 40.0}
+                    {"Ticker": "BTC-USD", "Quantity": 0.5}
                 ]
             )
             
@@ -62,33 +74,14 @@ def render_sidebar():
             use_container_width=True,
             column_config={
                 "Ticker": st.column_config.TextColumn("Ticker", required=True),
-                "Quantity": st.column_config.NumberColumn("Quantity", min_value=0.0001, required=True, format="%.2f")
+                "Quantity": st.column_config.NumberColumn("Quantity", min_value=0.0001, required=True)
             },
             hide_index=True
         )
         
         # Save state
         st.session_state.holdings_df = edited_df
-
-        # Price preview — gives immediate feedback for crypto/ETH tickers
-        preview_rows = edited_df.dropna(subset=["Ticker", "Quantity"])
-        if not preview_rows.empty:
-            crypto_map_preview = {"BTC": "BTC-USD", "ETH": "ETH-USD", "SOL": "SOL-USD", "XRP": "XRP-USD", "ADA": "ADA-USD"}
-            preview_tickers = []
-            for _, row in preview_rows.iterrows():
-                if row['Ticker'] and row['Quantity'] > 0:
-                    t = str(row['Ticker']).upper().strip()
-                    preview_tickers.append(crypto_map_preview.get(t, t))
-            if preview_tickers:
-                prices_preview = fetch_current_prices(preview_tickers)
-                if prices_preview:
-                    st.caption("Current Prices:")
-                    price_df = pd.DataFrame(
-                        [{"Ticker": t, "Price (USD)": f"${p:,.2f}" if p > 0 else "N/A"}
-                         for t, p in prices_preview.items()]
-                    )
-                    st.dataframe(price_df, hide_index=True, use_container_width=True)
-
+        
         st.markdown("<br>", unsafe_allow_html=True)
         
         # Global ELI10 Toggle
@@ -98,17 +91,9 @@ def render_sidebar():
         
         # Convert df to dict for backend processing
         valid_holdings = edited_df.dropna(subset=["Ticker", "Quantity"])
-        
-        # Crypto Mapping
-        crypto_map = {"BTC": "BTC-USD", "ETH": "ETH-USD", "SOL": "SOL-USD", "XRP": "XRP-USD", "ADA": "ADA-USD"}
-        
-        holdings_dict = {}
-        for _, row in valid_holdings.iterrows():
-            if row['Ticker'] and row['Quantity'] > 0:
-                ticker = str(row['Ticker']).upper().strip()
-                if ticker in crypto_map:
-                    ticker = crypto_map[ticker]
-                holdings_dict[ticker] = float(row['Quantity'])
+        # Format: {'AAPL': 50.0, 'ETH-USD': 2.0}
+        # Normalizes crypto tickers (e.g., ETH -> ETH-USD)
+        holdings_dict = {normalize_ticker(row['Ticker']): float(row['Quantity']) for _, row in valid_holdings.iterrows() if row['Ticker'] and row['Quantity'] > 0}
         
         profile_dict = {
             "name": name,
