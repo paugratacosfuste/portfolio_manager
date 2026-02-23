@@ -23,3 +23,5 @@ __pycache__/
 # Temporary files
 *.pkl
 *.sqlite3
+
+.claude
