@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import yfinance as yf
-import pickle
+import joblib
 import os
 import warnings
 warnings.filterwarnings('ignore')
@@ -164,10 +164,10 @@ def train_macro_model(df, target_col, preprocessor):
 
     os.makedirs('ml_pipeline', exist_ok=True)
 
-    with open('ml_pipeline/macro_risk_model.pkl', 'wb') as f:
-        pickle.dump(best_model_pipe, f)
+    model_path = 'ml_pipeline/macro_risk_model.joblib'
+    joblib.dump(best_model_pipe, model_path)
 
-    print("\nModel successfully saved to ml_pipeline/macro_risk_model.pkl")
+    print(f"\nModel successfully saved to {model_path}")
 
 
 if __name__ == "__main__":

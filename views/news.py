@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import pickle
+import joblib
 import os
 from utils.data_fetcher import fetch_recent_news
 from utils.ai_advisor import generate_news_summary
@@ -34,18 +34,13 @@ def render_news():
         
     tickers = list(holdings.keys())
     
-    # Load ML Models
-    vec_path = "ml_pipeline/tfidf_vectorizer.pkl"
-    model_path = "ml_pipeline/sentiment_model.pkl"
+    # Load ML Pipeline
+    pipeline_path = "ml_pipeline/sentiment_pipeline.joblib"
     
-    clf = None
-    vectorizer = None
+    pipeline = None
     
-    if os.path.exists(vec_path) and os.path.exists(model_path):
-        with open(vec_path, 'rb') as f:
-            vectorizer = pickle.load(f)
-        with open(model_path, 'rb') as f:
-            clf = pickle.load(f)
+    if os.path.exists(pipeline_path):
+        pipeline = joblib.load(pipeline_path)
     else:
         st.warning("Sentiment ML Models not found. Headlines will be fetched but not scored.")
         
@@ -70,13 +65,11 @@ def render_news():
         
     df_news = pd.DataFrame(all_news)
     
-    # Apply ML Scoring if models loaded
-    if clf and vectorizer:
+    # Apply ML Scoring if model loaded
+    if pipeline:
         with st.spinner("Scoring news with NLP model..."):
-            # Clean/Vectorize
-            text_features = vectorizer.transform(df_news['Title'])
-            # Predict (-1, 0, 1)
-            predictions = clf.predict(text_features)
+            # Predict (-1, 0, 1) directly with pipeline
+            predictions = pipeline.predict(df_news['Title'])
             df_news['ML Sentiment'] = predictions
             
             # Map number to readable tag

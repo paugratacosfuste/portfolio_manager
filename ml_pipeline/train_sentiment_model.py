@@ -1,60 +1,37 @@
+import os
 import zipfile
-import tempfile
+import pandas as pd
+import joblib
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, classification_report
+from sklearn.pipeline import Pipeline
 
-def train_sentiment_model(csv_path="ml_pipeline/stock_data.csv"):
-
+def train_sentiment_model(zip_filename="ml_pipeline/stock_market_sentiment.zip"):
     print("=" * 70)
     print("STOCK SENTIMENT NLP MODEL TRAINING")
     print("=" * 70)
 
     df = None
-
-    # ------------------------------------------------------------------
-    # 1. CHECK FOR ZIP FILE FIRST
-    # ------------------------------------------------------------------
-
-    zip_filename = "stock_market_sentiment.zip"
-
     if os.path.exists(zip_filename):
-        print(f"Found '{zip_filename}'. Extracting...")
-
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            with zipfile.ZipFile(zip_filename, 'r') as zip_ref:
-                zip_ref.extractall(tmpdirname)
-
-            # Find first CSV inside extracted folder
-            csv_files = []
-            for root, _, files in os.walk(tmpdirname):
-                for file in files:
-                    if file.endswith(".csv"):
-                        csv_files.append(os.path.join(root, file))
-
-            if not csv_files:
-                print("No CSV file found inside ZIP. Falling back to dummy data.")
-                df = generate_dummy_sentiment_data()
-            else:
-                csv_file_path = csv_files[0]
-                print(f"Loading extracted CSV: {csv_file_path}")
-                df = pd.read_csv(csv_file_path)
-
-    # ------------------------------------------------------------------
-    # 2. IF NO ZIP, CHECK FOR DIRECT CSV
-    # ------------------------------------------------------------------
-
-    elif os.path.exists(csv_path):
-        print(f"Loading '{csv_path}'...")
-        df = pd.read_csv(csv_path)
-
-    # ------------------------------------------------------------------
-    # 3. FALLBACK TO DUMMY
-    # ------------------------------------------------------------------
-
+        print(f"Found '{zip_filename}'. Reading CSV...")
+        try:
+            with zipfile.ZipFile(zip_filename, 'r') as z:
+                # Find the first csv file
+                csv_files = [f for f in z.namelist() if f.endswith('.csv')]
+                if not csv_files:
+                    raise FileNotFoundError("No CSV file found inside ZIP.")
+                
+                with z.open(csv_files[0]) as f:
+                    df = pd.read_csv(f)
+                    print(f"Loaded extracted CSV data from memory.")
+        except Exception as e:
+            print(f"Failed to read from zip: {e}")
+            return
     else:
-        df = generate_dummy_sentiment_data()
-
-    # ------------------------------------------------------------------
-    # 4. PROCESS DATA
-    # ------------------------------------------------------------------
+        print(f"Zip file '{zip_filename}' not found.")
+        return
 
     try:
         text_col = next(col for col in df.columns if 'text' in col.lower() or 'tweet' in col.lower())
@@ -69,45 +46,27 @@ def train_sentiment_model(csv_path="ml_pipeline/stock_data.csv"):
             y = df[target_col]
 
         X = df[text_col].astype(str)
-
         print(f"Loaded {len(df)} entries.")
-
     except Exception as e:
-        print(f"Error parsing dataset: {e}. Falling back to dummy data.")
-        df = generate_dummy_sentiment_data()
-        X = df['text']
-        y = df['sentiment']
+        print(f"Error parsing dataset: {e}")
+        return
 
     print("\n--- Model Training ---")
 
-    # Vectorization
-    print("1. Vectorizing text (TF-IDF)...")
-    vectorizer = TfidfVectorizer(
-        stop_words='english',
-        max_features=5000,
-        ngram_range=(1, 2),
-        min_df=2
-    )
-
-    X_vec = vectorizer.fit_transform(X)
-
-    # Stratified split (important for sentiment balance)
     X_train, X_test, y_train, y_test = train_test_split(
-        X_vec, y, test_size=0.2, random_state=42, stratify=y
+        X, y, test_size=0.2, random_state=42, stratify=y
     )
 
-    print("2. Training Logistic Regression Classifier...")
-    clf = LogisticRegression(
-        max_iter=1000,
-        random_state=42,
-        C=1.0,
-        class_weight='balanced'
-    )
+    print("1. Training Pipeline (TF-IDF + Logistic Regression)...")
+    pipe = Pipeline([
+        ('vectorizer', TfidfVectorizer(stop_words='english', max_features=5000, ngram_range=(1, 2), min_df=2)),
+        ('classifier', LogisticRegression(max_iter=1000, random_state=42, C=1.0, class_weight='balanced'))
+    ])
 
-    clf.fit(X_train, y_train)
+    pipe.fit(X_train, y_train)
 
-    print("3. Evaluating Model on Test Set...")
-    y_pred = clf.predict(X_test)
+    print("2. Evaluating Model on Test Set...")
+    y_pred = pipe.predict(X_test)
     acc = accuracy_score(y_test, y_pred)
 
     print(f"\nAccuracy: {acc:.4f}")
@@ -115,18 +74,10 @@ def train_sentiment_model(csv_path="ml_pipeline/stock_data.csv"):
 
     os.makedirs('ml_pipeline', exist_ok=True)
 
-    print("\n4. Saving Models...")
-    vec_path = 'ml_pipeline/tfidf_vectorizer.pkl'
-    model_path = 'ml_pipeline/sentiment_model.pkl'
-
-    with open(vec_path, 'wb') as f:
-        pickle.dump(vectorizer, f)
-
-    with open(model_path, 'wb') as f:
-        pickle.dump(clf, f)
-
-    print(f"Vectorizer successfully saved to {vec_path}")
-    print(f"Sentiment Model successfully saved to {model_path}")
+    print("\n3. Saving Pipeline Models using Joblib...")
+    model_path = 'ml_pipeline/sentiment_pipeline.joblib'
+    joblib.dump(pipe, model_path)
+    print(f"Sentiment Pipeline successfully saved to {model_path}")
 
 if __name__ == "__main__":
     import sys

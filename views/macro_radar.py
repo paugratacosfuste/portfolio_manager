@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import pickle
+import joblib
 import os
 import yfinance as yf
 
@@ -27,7 +27,7 @@ def render_macro_radar():
         - **Target:** Predicting if the S&P 500 will have a negative return (Correction) 21 trading days into the future.
         """)
         
-    model_path = "ml_pipeline/macro_risk_model.pkl"
+    model_path = "ml_pipeline/macro_risk_model.joblib"
     
     if not os.path.exists(model_path):
         st.warning("Macro Risk Model not found. Please ensure Phase 2 (train_model.py) was completed.")
@@ -35,12 +35,11 @@ def render_macro_radar():
         
     with st.spinner("Loading ML Model and fetching latest macro data..."):
         try:
-            with open(model_path, 'rb') as f:
-                model = pickle.load(f)
+            model = joblib.load(model_path)
                 
             # Fetch latest data to run inference
             tickers = ["^GSPC", "^VIX", "^TNX", "DX-Y.NYB"]
-            data = yf.download(tickers, period="2mo", progress=False)
+            data = yf.download(tickers, period="2y", progress=False)
             
             if 'Adj Close' in data.columns.levels[0]:
                 data = data['Adj Close']
@@ -55,6 +54,12 @@ def render_macro_radar():
             df['VIX_Change'] = df['VIX'].diff()
             df['US10Y_Change'] = df['US10Y'].diff()
             df['DXY_Return'] = df['DXY'].pct_change()
+            
+            # Recreate missing ML pipeline rolling features
+            df['SP500_20d_vol'] = df['SP500_Return'].rolling(20).std()
+            df['SP500_200d_ma_diff'] = df['SP500'] / df['SP500'].rolling(200).mean() - 1
+            df['VIX_zscore'] = (df['VIX'] - df['VIX'].rolling(252).mean()) / df['VIX'].rolling(252).std()
+            df['US10Y_20d_std'] = df['US10Y_Change'].rolling(20).std()
             
             latest_data = df.dropna().iloc[-1:]
             

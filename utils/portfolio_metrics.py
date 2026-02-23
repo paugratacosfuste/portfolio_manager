@@ -26,8 +26,10 @@ def calculate_portfolio_volatility(historical_prices: pd.DataFrame, weights: Dic
     # Create weights array in the same order as columns
     w_array = np.array([weights[t] for t in prices.columns])
     
-    # Normalize weights to sum to 1 if they don't exactly
-    w_array = w_array / np.sum(w_array)
+    w_sum = np.sum(w_array)
+    if w_sum == 0:
+        return 0.0
+    w_array = w_array / w_sum
     
     # Calculate portfolio variance (daily)
     port_variance = np.dot(w_array.T, np.dot(cov_matrix, w_array))
@@ -49,7 +51,10 @@ def calculate_hhi_index(weights: Dict[str, float]) -> float:
         
     w_array = np.array(list(weights.values()))
     # Ensure weights sum to 1
-    w_array = w_array / np.sum(w_array)
+    w_sum = np.sum(w_array)
+    if w_sum == 0:
+        return 0.0
+    w_array = w_array / w_sum
     
     # Convert to percentages (0-100) and square
     hhi = np.sum((w_array * 100) ** 2)
@@ -100,6 +105,8 @@ def calculate_portfolio_beta(historical_prices: pd.DataFrame, market_benchmark: 
     
     # Normalize weights
     total_w = sum(weights.values())
+    if total_w == 0:
+        return 0.0
     norm_weights = {k: v/total_w for k, v in weights.items()}
     
     for ticker in tickers:

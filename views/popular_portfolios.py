@@ -105,75 +105,61 @@ def _build_pie(allocations):
         marker=dict(colors=PIE_COLORS[:len(labels)]),
         textinfo="percent",
         textfont_size=11,
-        showlegend=True,
+        showlegend=False,
+        hoverinfo="label+percent"
     ))
     fig.update_layout(
-        margin=dict(t=10, b=10, l=10, r=10),
-        height=200,
+        margin=dict(t=0, b=0, l=0, r=0),
+        height=160,
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        legend=dict(font=dict(size=10), orientation="v", x=1.0, y=0.5),
     )
     return fig
 
 
 def _render_card(portfolio):
-    alloc_rows = "".join(
-        f"<tr><td style='padding:2px 8px 2px 0; font-size:0.82rem;'>{a[0]}</td>"
-        f"<td style='padding:2px 0; font-size:0.82rem; font-weight:600;'>{a[1]}%</td></tr>"
-        for a in portfolio["allocations"]
-    )
+    allocs = []
+    for i, a in enumerate(portfolio["allocations"]):
+        color = PIE_COLORS[i % len(PIE_COLORS)]
+        allocs.append(f"<div style='border-left: 4px solid {color}; background:#F8FAFC; padding:4px 8px; border-radius:4px; font-size:0.8rem; font-weight:600; color:#0B1F3A; display:flex; align-items:center; gap:6px;'>{a[0]} <span style='font-weight:400; color:#666;'>{a[1]}%</span></div>")
+    
+    allocations_html = f"<div style='display:flex; flex-wrap:wrap; gap:8px; margin-top:20px; margin-bottom:15px; height:70px; align-content: flex-start;'>{''.join(allocs)}</div>"
+
     ret_color = "#1F8A70" if portfolio["return_pos"] else "#C44536"
 
     header_html = f"""
-    <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
-      <div style="width:36px; height:36px; border-radius:50%; background:{portfolio['avatar_color']};
-                  display:flex; align-items:center; justify-content:center;
-                  color:#fff; font-weight:700; font-size:0.85rem; flex-shrink:0;">
-        {portfolio['initials']}
-      </div>
-      <div>
-        <div style="font-weight:700; font-size:1rem; color:#0B1F3A;">{portfolio['name']}</div>
-        <div style="font-size:0.78rem; color:#666;">by {portfolio['user']}</div>
-      </div>
-      <span style="margin-left:auto; background:{portfolio['risk_color']}22;
-                   color:{portfolio['risk_color']}; font-size:0.72rem; font-weight:600;
-                   padding:2px 8px; border-radius:12px; border:1px solid {portfolio['risk_color']}44;">
-        {portfolio['risk']}
-      </span>
-    </div>
-    """
-
-    alloc_html = f"""
-    <table style="width:100%; border-collapse:collapse; margin-top:4px;">
-      {alloc_rows}
-    </table>
-    """
+<div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+  <div style="width:36px; height:36px; border-radius:50%; background:{portfolio['avatar_color']}; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:0.85rem; flex-shrink:0;">
+    {portfolio['initials']}
+  </div>
+  <div>
+    <div style="font-weight:700; font-size:1rem; color:#0B1F3A; line-height:1.2;">{portfolio['name']}</div>
+    <div style="font-size:0.78rem; color:#666; line-height:1.2;">by {portfolio['user']}</div>
+  </div>
+  <span style="margin-left:auto; background:{portfolio['risk_color']}22; color:{portfolio['risk_color']}; font-size:0.72rem; font-weight:600; padding:2px 8px; border-radius:12px; border:1px solid {portfolio['risk_color']}44;">
+    {portfolio['risk']}
+  </span>
+</div>
+""".replace('\n', '')
 
     perf_html = f"""
-    <div style="display:flex; gap:16px; margin-top:10px; padding-top:10px;
-                border-top:1px solid #E8EDF2;">
-      <div>
-        <div style="font-size:0.72rem; color:#888;">1Y Return</div>
-        <div style="font-weight:700; color:{ret_color}; font-size:0.95rem;">{portfolio['return_1y']}</div>
-      </div>
-      <div>
-        <div style="font-size:0.72rem; color:#888;">3Y Ann. Return</div>
-        <div style="font-weight:700; color:{ret_color}; font-size:0.95rem;">{portfolio['return_3y']}</div>
-      </div>
-    </div>
-    """
+<div style="display:flex; gap:16px; margin-top:10px; padding-top:15px; border-top:1px solid #E8EDF2;">
+  <div>
+    <div style="font-size:0.72rem; color:#888;">1Y Return</div>
+    <div style="font-weight:700; color:{ret_color}; font-size:0.95rem;">{portfolio['return_1y']}</div>
+  </div>
+  <div>
+    <div style="font-size:0.72rem; color:#888;">3Y Ann. Return</div>
+    <div style="font-weight:700; color:{ret_color}; font-size:0.95rem;">{portfolio['return_3y']}</div>
+  </div>
+</div>
+""".replace('\n', '')
 
-    st.markdown(
-        f"""<div style="background:#FFFFFF; border-radius:12px; border:1px solid #E0E7EF;
-                        box-shadow:0 2px 8px rgba(11,31,58,0.07); padding:16px; margin-bottom:8px;">
-              {header_html}
-              {alloc_html}
-              {perf_html}
-            </div>""",
-        unsafe_allow_html=True,
-    )
-    st.plotly_chart(_build_pie(portfolio["allocations"]), use_container_width=True, key=f"pie_{portfolio['name']}")
+    # Enforce strict identical boxed container size across all portfolios
+    with st.container(border=True, height=450):
+        st.markdown(header_html, unsafe_allow_html=True)
+        st.plotly_chart(_build_pie(portfolio["allocations"]), use_container_width=True, key=f"pie_{portfolio['name']}")
+        st.markdown(allocations_html + perf_html, unsafe_allow_html=True)
 
 
 def render_popular_portfolios():

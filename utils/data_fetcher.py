@@ -20,7 +20,10 @@ def fetch_current_prices(tickers: List[str]) -> Dict[str, float]:
                 if len(tickers) == 1:
                     price = float(close_data.iloc[-1])
                 else:
-                    price = float(close_data[ticker].iloc[-1])
+                    if ticker in close_data.columns:
+                        price = float(close_data[ticker].iloc[-1])
+                    else:
+                        price = float('nan')
                 
                 # Check for NaN and set to 0.0 if invalid
                 if pd.isna(price):
