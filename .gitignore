@@ -25,3 +25,4 @@ __pycache__/
 *.sqlite3
 
 .claude/
+.venv_new/
