@@ -59,7 +59,12 @@ def render_dashboard():
                 hole=0.4,
                 color_discrete_sequence=['#3A6EA5', '#1F8A70', '#0B1F3A', '#C44536', '#F4A261', '#2A9D8F']
             )
-            fig.update_layout(margin=dict(t=0, b=0, l=0, r=0), showlegend=True)
+            fig.update_layout(
+                margin=dict(t=0, b=0, l=0, r=0), 
+                showlegend=True,
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)'
+            )
             st.plotly_chart(fig, use_container_width=True)
         else:
             st.info("Portfolio value is zero.")
@@ -94,7 +99,9 @@ def render_dashboard():
                 xaxis_title="Date",
                 yaxis_title="Normalized Value (Baseline 100)",
                 margin=dict(t=0, b=0, l=0, r=0),
-                legend_title_text=''
+                legend_title_text='',
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)'
             )
             st.plotly_chart(fig, use_container_width=True)
         else:

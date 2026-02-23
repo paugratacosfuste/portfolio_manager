@@ -20,11 +20,11 @@ def load_css(file_name):
 load_css("styles/main.css")
 
 from components.sidebar import render_sidebar
-from pages.dashboard import render_dashboard
-from pages.suggestions import render_suggestions
-from pages.macro_radar import render_macro_radar
-from pages.news import render_news
-from pages.popular_portfolios import render_popular_portfolios
+from views.dashboard import render_dashboard
+from views.suggestions import render_suggestions
+from views.macro_radar import render_macro_radar
+from views.news import render_news
+from views.popular_portfolios import render_popular_portfolios
 
 def main():
     # Render Sidebar and get user inputs
