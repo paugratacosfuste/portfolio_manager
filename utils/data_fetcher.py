@@ -4,16 +4,11 @@ from typing import Dict, List, Optional
 import datetime
 
 def fetch_current_prices(tickers: List[str]) -> Dict[str, float]:
-    """
-    Fetches the most recent closing prices for a list of tickers.
-    Returns a dictionary mapping ticker to price.
-    """
     prices = {}
     if not tickers:
         return prices
-    
     try:
-        data = yf.download(tickers, period="5d", progress=False) # Get 5 days to ensure we have a valid last close
+        data = yf.download(tickers, period="5d", progress=False)
         if 'Close' in data:
             close_data = data['Close'].ffill()
             for ticker in tickers:
@@ -24,30 +19,21 @@ def fetch_current_prices(tickers: List[str]) -> Dict[str, float]:
                         price = float(close_data[ticker].iloc[-1])
                     else:
                         price = float('nan')
-                
-                # Check for NaN and set to 0.0 if invalid
                 if pd.isna(price):
                     prices[ticker] = 0.0
                 else:
                     prices[ticker] = price
     except Exception as e:
         print(f"Error fetching current prices: {e}")
-    
     return prices
 
 def fetch_historical_data(tickers: List[str], period: str = "1y") -> pd.DataFrame:
-    """
-    Fetches historical adjusted close prices for a list of tickers over a given period.
-    Period can be "1mo", "3mo", "6mo", "1y", "2y", "5y", "10y", "ytd", "max".
-    """
     if not tickers:
         return pd.DataFrame()
-    
     try:
         data = yf.download(tickers, period=period, progress=False)
         if 'Adj Close' in data:
             df = data['Adj Close']
-            # If only one ticker, yf returns a Series, convert to DataFrame
             if isinstance(df, pd.Series):
                 df = df.to_frame(name=tickers[0])
             return df
@@ -58,14 +44,9 @@ def fetch_historical_data(tickers: List[str], period: str = "1y") -> pd.DataFram
             return df
     except Exception as e:
         print(f"Error fetching historical data: {e}")
-        
     return pd.DataFrame()
 
-def fetch_recent_news(tickers: List[str], limit: int = 5) -> Dict[str, List[Dict]]:
-    """
-    Fetches recent news headlines for a list of tickers.
-    Returns a dictionary mapping ticker to a list of news articles (dict with title, link, publisher).
-    """
+def fetch_recent_news(tickers: List[str], limit: int = 10) -> Dict[str, List[Dict]]:
     news_dict = {}
     for ticker in tickers:
         try:
@@ -93,5 +74,53 @@ def fetch_recent_news(tickers: List[str], limit: int = 5) -> Dict[str, List[Dict
         except Exception as e:
             print(f"Error fetching news for {ticker}: {e}")
             news_dict[ticker] = []
-            
     return news_dict
+
+def fetch_asset_metadata(tickers: List[str]) -> Dict[str, Dict]:
+    meta = {}
+    for ticker in tickers:
+        try:
+            info = yf.Ticker(ticker).info
+            
+            quote_type = info.get("quoteType", "")
+            category = info.get("category", "") or ""
+            
+            # Asset Class
+            if quote_type == "CRYPTOCURRENCY":
+                asset_class = "Crypto"
+            elif "Bond" in category or "Fixed Income" in category or quote_type == "INDEX":
+                asset_class = "Bonds/Cash"
+            else:
+                asset_class = "Stocks"
+                
+            # Sector
+            sector = info.get("sector", None)
+            if not sector:
+                if asset_class == "Crypto":
+                    sector = "Digital Assets"
+                elif asset_class == "Bonds/Cash":
+                    sector = "Fixed Income"
+                else:
+                    sector = "Broad Market ETF"
+            
+            # Region
+            region = info.get("country", None)
+            if not region:
+                if asset_class == "Crypto":
+                    region = "Global/Decentralized"
+                else:
+                    region = "United States"
+            elif region == "United States":
+                region = "United States"
+            else:
+                region = "International"
+                
+            meta[ticker] = {
+                "asset_class": asset_class,
+                "sector": sector,
+                "region": region
+            }
+        except:
+            meta[ticker] = {"asset_class": "Stocks", "sector": "Other", "region": "United States"}
+            
+    return meta
