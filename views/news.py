@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import plotly.graph_objects as go
 import joblib
 import os
 from utils.data_fetcher import fetch_recent_news
@@ -81,13 +82,32 @@ def render_news():
     # Aggregate sentiment by ticker
     if 'ML Sentiment' in df_news.columns:
         agg_sentiment = df_news.groupby('Ticker')['ML Sentiment'].mean().reset_index()
+        agg_sentiment = agg_sentiment.sort_values('ML Sentiment', ascending=True)
         st.markdown("#### Average Sentiment by Asset")
-        
-        cols = st.columns(len(agg_sentiment))
-        for idx, row in agg_sentiment.iterrows():
-            with cols[idx]:
-                score = row['ML Sentiment']
-                st.metric(row['Ticker'], f"{score:+.2f}", help="Range -1.0 (Very Negative) to +1.0 (Very Positive)")
+
+        fig_sent = go.Figure()
+        fig_sent.add_trace(go.Bar(
+            y=agg_sentiment['Ticker'],
+            x=agg_sentiment['ML Sentiment'],
+            orientation='h',
+            marker_color=[
+                '#C44536' if s < -0.2 else ('#1F8A70' if s > 0.2 else '#3A6EA5')
+                for s in agg_sentiment['ML Sentiment']
+            ],
+            text=[f"{s:+.2f}" for s in agg_sentiment['ML Sentiment']],
+            textposition='outside',
+        ))
+        fig_sent.update_layout(
+            xaxis_title='Sentiment Score',
+            xaxis_range=[-1.1, 1.1],
+            yaxis_title='',
+            margin=dict(t=10, b=40, l=80, r=40),
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            height=max(250, len(agg_sentiment) * 40),
+        )
+        fig_sent.add_vline(x=0, line_dash="dash", line_color="#999")
+        st.plotly_chart(fig_sent, use_container_width=True)
                 
     st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
     

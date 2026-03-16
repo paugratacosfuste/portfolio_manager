@@ -13,7 +13,7 @@ def test_get_current_prices(mock_download):
     
     assert 'AAPL' in prices
     assert prices['AAPL'] == 150.0
-    mock_download.assert_called_with(['AAPL'], period="1d", progress=False)
+    mock_download.assert_called_with(['AAPL'], period="5d", progress=False)
 
 @patch('utils.data_fetcher.yf.download')
 def test_get_historical_data(mock_download):

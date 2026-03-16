@@ -21,10 +21,13 @@ load_css("styles/main.css")
 
 from components.sidebar import render_sidebar
 from views.dashboard import render_dashboard
+from views.ai_chat import render_ai_chat
+from views.stress_test import render_stress_test
 from views.suggestions import render_suggestions
 from views.macro_radar import render_macro_radar
 from views.news import render_news
 from views.popular_portfolios import render_popular_portfolios
+from views.ml_transparency import render_ml_transparency
 
 def main():
     # Render Sidebar and get user inputs
@@ -36,20 +39,29 @@ def main():
     
     selected_page = st.radio(
         "Navigation",
-        ["Dashboard", "Suggestions", "Macro Radar", "News & Sentiment", "Standard Portfolios"],
+        ["Dashboard", "AI Chat", "Stress Test", "Suggestions", "Macro Radar", "News & Sentiment", "Standard Portfolios", "ML Transparency"],
         horizontal=True,
         label_visibility="collapsed"
     )
-    
+
     st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
-    
+
+    # ML Transparency doesn't require holdings
+    if selected_page == "ML Transparency":
+        render_ml_transparency()
+        return
+
     if len(holdings) == 0:
         st.warning("Please add at least one holding in the sidebar to view your portfolio analytics.")
         st.stop()
-        
+
     # Page Routing
     if selected_page == "Dashboard":
         render_dashboard()
+    elif selected_page == "AI Chat":
+        render_ai_chat()
+    elif selected_page == "Stress Test":
+        render_stress_test()
     elif selected_page == "Suggestions":
         render_suggestions()
     elif selected_page == "Macro Radar":

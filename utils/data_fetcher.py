@@ -2,7 +2,10 @@ import yfinance as yf
 import pandas as pd
 from typing import Dict, List, Optional
 import datetime
+import streamlit as st
 
+
+@st.cache_data(ttl=300, show_spinner=False)
 def fetch_current_prices(tickers: List[str]) -> Dict[str, float]:
     prices = {}
     if not tickers:
@@ -27,6 +30,7 @@ def fetch_current_prices(tickers: List[str]) -> Dict[str, float]:
         print(f"Error fetching current prices: {e}")
     return prices
 
+@st.cache_data(ttl=300, show_spinner=False)
 def fetch_historical_data(tickers: List[str], period: str = "1y") -> pd.DataFrame:
     if not tickers:
         return pd.DataFrame()

@@ -37,18 +37,45 @@ def render_macro_radar():
         try:
             model = joblib.load(model_path)
                 
-            # Fetch latest data to run inference
-            tickers = ["^GSPC", "^VIX", "^TNX", "DX-Y.NYB"]
-            data = yf.download(tickers, period="2y", progress=False)
-            
-            if 'Adj Close' in data.columns.levels[0]:
-                data = data['Adj Close']
-            else:
-                data = data['Close']
-                
-            df = data.dropna(how='all').ffill().dropna()
-            df = df[['^GSPC', '^TNX', '^VIX', 'DX-Y.NYB']].copy()
-            df.columns = ['SP500', 'US10Y', 'VIX', 'DXY']
+            # Fetch latest data to run inference — download individually for reliability
+            ticker_map = {'^GSPC': 'SP500', '^TNX': 'US10Y', '^VIX': 'VIX'}
+            dxy_tickers = ['DX-Y.NYB', 'DX=F']  # fallback for Dollar Index
+            frames = {}
+
+            def _download_close(yf_ticker):
+                t_data = yf.download(yf_ticker, period="2y", progress=False)
+                if t_data.empty:
+                    return None
+                if isinstance(t_data.columns, pd.MultiIndex):
+                    return t_data['Close'].iloc[:, 0]
+                elif 'Close' in t_data.columns:
+                    return t_data['Close']
+                return t_data.iloc[:, 0]
+
+            for yf_ticker, col_name in ticker_map.items():
+                try:
+                    close = _download_close(yf_ticker)
+                    if close is not None and len(close) > 0:
+                        frames[col_name] = close
+                except Exception:
+                    pass
+
+            # Try DXY tickers with fallback
+            for dxy_ticker in dxy_tickers:
+                try:
+                    close = _download_close(dxy_ticker)
+                    if close is not None and len(close) > 0:
+                        frames['DXY'] = close
+                        break
+                except Exception:
+                    pass
+
+            missing = [k for k in ['SP500', 'US10Y', 'VIX', 'DXY'] if k not in frames]
+            if missing:
+                st.error(f"Could not fetch data for: {missing}. Try refreshing.")
+                return
+
+            df = pd.DataFrame(frames).dropna(how='all').ffill().dropna()
             
             df['SP500_Return'] = df['SP500'].pct_change()
             df['VIX_Change'] = df['VIX'].diff()
@@ -101,7 +128,7 @@ def render_macro_radar():
                         sys_prompt = "Explain this market weather report to a 10 year old."
                         
                     res = client.messages.create(
-                        model="claude-3-haiku-20240307",
+                        model="claude-haiku-4-5-20251001",
                         max_tokens=400,
                         system=sys_prompt,
                         messages=[{"role": "user", "content": prompt}]

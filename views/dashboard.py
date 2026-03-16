@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 from utils.data_fetcher import fetch_current_prices, fetch_historical_data
 
 def render_dashboard():
@@ -113,3 +114,36 @@ def render_dashboard():
         use_container_width=True,
         hide_index=True
     )
+
+    # ── Correlation Heatmap ─────────────────────────────────────────────
+    if not hist_data.empty and len(tickers) > 1:
+        st.markdown("### Correlation Matrix")
+        st.markdown(
+            "<p style='color:#666; font-size:0.9rem;'>Daily return correlations between your holdings. "
+            "Low or negative correlations indicate good diversification.</p>",
+            unsafe_allow_html=True,
+        )
+        valid_cols = [t for t in tickers if t in hist_data.columns]
+        if len(valid_cols) > 1:
+            returns = hist_data[valid_cols].pct_change().dropna()
+            corr_matrix = returns.corr()
+
+            fig_corr = go.Figure(data=go.Heatmap(
+                z=corr_matrix.values,
+                x=corr_matrix.columns.tolist(),
+                y=corr_matrix.index.tolist(),
+                colorscale=[[0, "#3A6EA5"], [0.5, "#FFFFFF"], [1, "#C44536"]],
+                zmin=-1,
+                zmax=1,
+                text=corr_matrix.round(2).values,
+                texttemplate="%{text}",
+                textfont={"size": 11},
+                hovertemplate="<b>%{x}</b> vs <b>%{y}</b><br>Correlation: %{z:.2f}<extra></extra>",
+            ))
+            fig_corr.update_layout(
+                margin=dict(t=10, b=10, l=10, r=10),
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                height=max(350, len(valid_cols) * 50),
+            )
+            st.plotly_chart(fig_corr, use_container_width=True)

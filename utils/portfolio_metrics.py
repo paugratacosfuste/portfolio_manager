@@ -116,6 +116,68 @@ def calculate_portfolio_beta(historical_prices: pd.DataFrame, market_benchmark: 
             
     return float(port_beta)
 
+def calculate_sharpe_ratio(historical_prices: pd.DataFrame, weights: Dict[str, float], risk_free_rate: float = 0.05) -> float:
+    """
+    Calculates the annualized Sharpe ratio of the portfolio.
+    Sharpe = (annualized_return - risk_free_rate) / annualized_volatility
+    """
+    if historical_prices.empty or not weights:
+        return 0.0
+
+    tickers = list(weights.keys())
+    prices = historical_prices[tickers].dropna()
+
+    if prices.empty or len(prices) < 2:
+        return 0.0
+
+    returns = prices.pct_change().dropna()
+    w_array = np.array([weights[t] for t in prices.columns])
+    w_sum = np.sum(w_array)
+    if w_sum == 0:
+        return 0.0
+    w_array = w_array / w_sum
+
+    portfolio_returns = returns.values @ w_array
+    annualized_return = np.mean(portfolio_returns) * 252
+    annualized_vol = np.std(portfolio_returns) * np.sqrt(252)
+
+    if annualized_vol == 0:
+        return 0.0
+
+    return float((annualized_return - risk_free_rate) / annualized_vol)
+
+
+def calculate_max_drawdown(historical_prices: pd.DataFrame, weights: Dict[str, float]) -> float:
+    """
+    Calculates the maximum drawdown (largest peak-to-trough decline) of the portfolio.
+    Returns a negative percentage (e.g. -0.25 for -25%).
+    """
+    if historical_prices.empty or not weights:
+        return 0.0
+
+    tickers = list(weights.keys())
+    prices = historical_prices[tickers].dropna()
+
+    if prices.empty or len(prices) < 2:
+        return 0.0
+
+    w_array = np.array([weights[t] for t in prices.columns])
+    w_sum = np.sum(w_array)
+    if w_sum == 0:
+        return 0.0
+    w_array = w_array / w_sum
+
+    # Compute weighted portfolio value series (normalized)
+    returns = prices.pct_change().dropna()
+    portfolio_returns = returns.values @ w_array
+    cumulative = (1 + pd.Series(portfolio_returns)).cumprod()
+    running_max = cumulative.cummax()
+    drawdown = (cumulative - running_max) / running_max
+    max_dd = drawdown.min()
+
+    return float(max_dd)
+
+
 def assess_risk_score(volatility: float, hhi: float, beta: float, total_value: float) -> int:
     """
     Calculates an abstract "Risk Score" out of 100 based on calculated metrics.

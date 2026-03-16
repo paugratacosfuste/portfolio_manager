@@ -165,3 +165,29 @@ textarea:focus {
     background-color: #D9D9D9;
     margin: 1.5rem 0;
 }
+
+/* Chat styling */
+[data-testid="stChatMessage"] {
+    background-color: #FFFFFF !important;
+    border: 1px solid #E0E7EF !important;
+    border-radius: 12px !important;
+    padding: 1rem !important;
+    margin-bottom: 0.75rem !important;
+}
+
+[data-testid="stChatInput"] textarea {
+    border-radius: 12px !important;
+    border: 1px solid #D9D9D9 !important;
+}
+
+/* Status expander for tool transparency */
+[data-testid="stStatusWidget"] {
+    border-radius: 8px !important;
+    border: 1px solid #E0E7EF !important;
+    margin-top: 0.5rem !important;
+}
+
+/* Stress test preset buttons */
+.stButton > button[kind="secondary"] {
+    font-size: 0.85rem !important;
+}

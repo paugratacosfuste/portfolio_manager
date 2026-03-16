@@ -6,7 +6,9 @@ from utils.portfolio_metrics import (
     calculate_hhi_index,
     calculate_beta,
     calculate_portfolio_beta,
-    assess_risk_score
+    assess_risk_score,
+    calculate_sharpe_ratio,
+    calculate_max_drawdown,
 )
 
 def test_calculate_hhi_index():
@@ -58,6 +60,48 @@ def test_calculate_beta():
     # Perfectly correlated
     asset = pd.Series([0.01, 0.02, -0.01])
     market = pd.Series([0.01, 0.02, -0.01])
-    
+
     beta = calculate_beta(asset, market)
     assert np.isclose(beta, 1.0)
+
+
+def test_calculate_sharpe_ratio():
+    # Create a simple upward-trending price series
+    dates = pd.date_range("2023-01-01", periods=252)
+    np.random.seed(42)
+    prices_a = 100 * (1 + np.random.normal(0.0005, 0.01, 252)).cumprod()
+    prices_b = 100 * (1 + np.random.normal(0.0003, 0.015, 252)).cumprod()
+    df = pd.DataFrame({'AAPL': prices_a, 'MSFT': prices_b}, index=dates)
+
+    weights = {'AAPL': 0.6, 'MSFT': 0.4}
+    sharpe = calculate_sharpe_ratio(df, weights)
+
+    assert isinstance(sharpe, float)
+    # With random seed 42 and positive drift, Sharpe should be a real number
+    assert not np.isnan(sharpe)
+
+
+def test_calculate_sharpe_ratio_empty():
+    df = pd.DataFrame()
+    assert calculate_sharpe_ratio(df, {}) == 0.0
+
+
+def test_calculate_max_drawdown():
+    # Create a price series with a known drawdown
+    dates = pd.date_range("2023-01-01", periods=10)
+    # Goes up to 120, then drops to 90 (25% drawdown from peak), then recovers
+    df = pd.DataFrame({
+        'AAPL': [100, 110, 120, 110, 100, 90, 95, 100, 105, 110]
+    }, index=dates)
+
+    weights = {'AAPL': 1.0}
+    max_dd = calculate_max_drawdown(df, weights)
+
+    assert isinstance(max_dd, float)
+    assert max_dd < 0  # Drawdown should be negative
+    assert max_dd >= -1.0  # Can't lose more than 100%
+
+
+def test_calculate_max_drawdown_empty():
+    df = pd.DataFrame()
+    assert calculate_max_drawdown(df, {}) == 0.0

@@ -71,7 +71,7 @@ Use markdown formatting (bullet points, bold text) to make your points clear and
 
     try:
         response = client.messages.create(
-            model="claude-3-haiku-20240307",
+            model="claude-haiku-4-5-20251001",
             max_tokens=1000,
             system=system_prompt,
             messages=[
@@ -113,7 +113,7 @@ Provide a brief, synthesized summary of what this means for my portfolio.
 
     try:
         response = client.messages.create(
-            model="claude-3-haiku-20240307", # Use Haiku for faster, cheaper summarization
+            model="claude-haiku-4-5-20251001", # Use Haiku for faster, cheaper summarization
             max_tokens=500,
             system=system_prompt,
             messages=[
@@ -159,7 +159,7 @@ Provide a brief compare-and-contrast analysis. What are the trade-offs I'm makin
 
     try:
         response = client.messages.create(
-            model="claude-3-haiku-20240307",
+            model="claude-haiku-4-5-20251001",
             max_tokens=600,
             system=system_prompt,
             messages=[

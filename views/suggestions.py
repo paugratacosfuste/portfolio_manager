@@ -4,7 +4,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from utils.data_fetcher import fetch_historical_data, fetch_current_prices
 from utils.data_fetcher import fetch_asset_metadata
-from utils.portfolio_metrics import calculate_portfolio_volatility, calculate_portfolio_beta, calculate_hhi_index, assess_risk_score
+from utils.portfolio_metrics import calculate_portfolio_volatility, calculate_portfolio_beta, calculate_hhi_index, assess_risk_score, calculate_sharpe_ratio, calculate_max_drawdown
 
 def render_suggestions():
     st.markdown("<h1>Risk Analysis & Suggestions</h1>", unsafe_allow_html=True)
@@ -43,8 +43,11 @@ def render_suggestions():
                 beta = 1.0
             hhi = calculate_hhi_index(weights)
             risk_score = assess_risk_score(volatility, hhi, beta, total_value)
+            sharpe = calculate_sharpe_ratio(prices_df[valid_tickers_for_risk], weights)
+            max_dd = calculate_max_drawdown(prices_df[valid_tickers_for_risk], weights)
         else:
             volatility, beta, hhi, risk_score = 0.0, 1.0, calculate_hhi_index(weights), 50
+            sharpe, max_dd = 0.0, 0.0
             st.info("Currently gathering enough historical market data for full probabilistic risk metrics. Relying on baseline mapping.")
             
         # Get metadata for grouping
@@ -104,8 +107,8 @@ def render_suggestions():
     # ── METRICS COMPARISON BLOCKS ─────────────────────────────────────────────
     st.markdown(f"### Profile: {risk_level} Investor")
     
-    col1, col2, col3 = st.columns(3)
-    
+    col1, col2, col3, col4, col5 = st.columns(5)
+
     def _metric_card(title, current, ideal, status_color, suffix=""):
         return f"""
         <div style="background:#fff; padding:15px; border-radius:10px; border:1px solid #E0E7EF; text-align:center;">
@@ -116,16 +119,22 @@ def render_suggestions():
             </div>
         </div>
         """
-        
+
     vol_color = "#1F8A70" if volatility <= target["vol_max"] else "#C44536"
     beta_color = "#1F8A70" if abs(beta - target["beta_target"]) < 0.2 else "#E08C3A"
-    
+    sharpe_color = "#1F8A70" if sharpe > 0.5 else ("#E08C3A" if sharpe > 0 else "#C44536")
+    dd_color = "#1F8A70" if max_dd > -0.10 else ("#E08C3A" if max_dd > -0.20 else "#C44536")
+
     with col1:
         st.markdown(_metric_card("Annualized Volatility", f"{volatility*100:.1f}", f"<{target['vol_max']*100:.1f}", vol_color, "%"), unsafe_allow_html=True)
     with col2:
         st.markdown(_metric_card("Portfolio Beta", f"{beta:.2f}", f"~{target['beta_target']:.2f}", beta_color), unsafe_allow_html=True)
     with col3:
         st.markdown(_metric_card("Concentration (HHI)", f"{hhi:.0f}", "<2000", "#1F8A70" if hhi < 2000 else "#C44536"), unsafe_allow_html=True)
+    with col4:
+        st.markdown(_metric_card("Sharpe Ratio", f"{sharpe:.2f}", ">0.50", sharpe_color), unsafe_allow_html=True)
+    with col5:
+        st.markdown(_metric_card("Max Drawdown", f"{max_dd*100:.1f}", ">-10.0", dd_color, "%"), unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
 
