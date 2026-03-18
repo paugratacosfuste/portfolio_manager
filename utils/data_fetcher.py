@@ -11,21 +11,29 @@ def fetch_current_prices(tickers: List[str]) -> Dict[str, float]:
     if not tickers:
         return prices
     try:
-        data = yf.download(tickers, period="5d", progress=False)
-        if 'Close' in data:
+        data = yf.download(tickers, period="5d", progress=False, auto_adjust=True)
+        if data.empty:
+            return prices
+        # yfinance >=1.2 always returns MultiIndex columns; flatten if needed
+        if isinstance(data.columns, pd.MultiIndex):
             close_data = data['Close'].ffill()
-            for ticker in tickers:
-                if len(tickers) == 1:
+        elif 'Close' in data.columns:
+            close_data = data['Close'].ffill()
+        else:
+            return prices
+        for ticker in tickers:
+            try:
+                if isinstance(close_data, pd.Series):
                     price = float(close_data.iloc[-1])
+                elif ticker in close_data.columns:
+                    price = float(close_data[ticker].iloc[-1])
+                elif len(tickers) == 1:
+                    price = float(close_data.iloc[-1, 0]) if hasattr(close_data, 'iloc') else float('nan')
                 else:
-                    if ticker in close_data.columns:
-                        price = float(close_data[ticker].iloc[-1])
-                    else:
-                        price = float('nan')
-                if pd.isna(price):
-                    prices[ticker] = 0.0
-                else:
-                    prices[ticker] = price
+                    price = float('nan')
+            except Exception:
+                price = float('nan')
+            prices[ticker] = 0.0 if pd.isna(price) else price
     except Exception as e:
         print(f"Error fetching current prices: {e}")
     return prices
@@ -35,17 +43,21 @@ def fetch_historical_data(tickers: List[str], period: str = "1y") -> pd.DataFram
     if not tickers:
         return pd.DataFrame()
     try:
-        data = yf.download(tickers, period=period, progress=False)
-        if 'Adj Close' in data:
-            df = data['Adj Close']
-            if isinstance(df, pd.Series):
-                df = df.to_frame(name=tickers[0])
-            return df
-        elif 'Close' in data:
+        data = yf.download(tickers, period=period, progress=False, auto_adjust=True)
+        if data.empty:
+            return pd.DataFrame()
+        # yfinance >=1.2 always returns MultiIndex columns; extract Close
+        if isinstance(data.columns, pd.MultiIndex):
             df = data['Close']
-            if isinstance(df, pd.Series):
-                df = df.to_frame(name=tickers[0])
-            return df
+        elif 'Close' in data.columns:
+            df = data[['Close']].rename(columns={'Close': tickers[0]}) if len(tickers) == 1 else data['Close']
+        else:
+            return pd.DataFrame()
+        if isinstance(df, pd.Series):
+            df = df.to_frame(name=tickers[0])
+        # Strip 'Ticker' level name from columns to match expected flat format
+        df.columns.name = None
+        return df
     except Exception as e:
         print(f"Error fetching historical data: {e}")
     return pd.DataFrame()
