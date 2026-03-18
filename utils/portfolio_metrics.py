@@ -116,13 +116,16 @@ def calculate_portfolio_beta(historical_prices: pd.DataFrame, market_benchmark: 
             
     return float(port_beta)
 
-def calculate_sharpe_ratio(historical_prices: pd.DataFrame, weights: Dict[str, float], risk_free_rate: float = 0.05) -> float:
+def calculate_sharpe_ratio(historical_prices: pd.DataFrame, weights: Dict[str, float], risk_free_rate: float = None) -> float:
     """
     Calculates the annualized Sharpe ratio of the portfolio.
     Sharpe = (annualized_return - risk_free_rate) / annualized_volatility
     """
     if historical_prices.empty or not weights:
         return 0.0
+
+    if risk_free_rate is None:
+        risk_free_rate = get_dynamic_risk_free_rate()
 
     tickers = list(weights.keys())
     prices = historical_prices[tickers].dropna()
@@ -176,6 +179,60 @@ def calculate_max_drawdown(historical_prices: pd.DataFrame, weights: Dict[str, f
     max_dd = drawdown.min()
 
     return float(max_dd)
+
+
+def calculate_cvar(historical_prices: pd.DataFrame, weights: Dict[str, float], confidence: float = 0.95) -> float:
+    """
+    Calculates Conditional Value at Risk (Expected Shortfall) at the given confidence level.
+    CVaR = average of losses beyond the VaR threshold.
+    Returns a negative percentage (e.g., -0.03 for -3% daily CVaR).
+    """
+    if historical_prices.empty or not weights:
+        return 0.0
+
+    tickers = list(weights.keys())
+    prices = historical_prices[tickers].dropna()
+
+    if prices.empty or len(prices) < 2:
+        return 0.0
+
+    returns = prices.pct_change().dropna()
+    w_array = np.array([weights[t] for t in prices.columns])
+    w_sum = np.sum(w_array)
+    if w_sum == 0:
+        return 0.0
+    w_array = w_array / w_sum
+
+    portfolio_returns = returns.values @ w_array
+    var_threshold = np.percentile(portfolio_returns, (1 - confidence) * 100)
+    tail_returns = portfolio_returns[portfolio_returns <= var_threshold]
+
+    if len(tail_returns) == 0:
+        return float(var_threshold)
+
+    return float(np.mean(tail_returns))
+
+
+def get_dynamic_risk_free_rate() -> float:
+    """
+    Fetches the current US 10-Year Treasury yield as the risk-free rate.
+    Falls back to 5% if fetch fails.
+    """
+    try:
+        import yfinance as yf
+        data = yf.download("^TNX", period="5d", progress=False)
+        if not data.empty:
+            if isinstance(data.columns, pd.MultiIndex):
+                rate = float(data['Close'].iloc[:, 0].iloc[-1]) / 100
+            elif 'Close' in data.columns:
+                rate = float(data['Close'].iloc[-1]) / 100
+            else:
+                rate = 0.05
+            if 0 < rate < 0.20:  # sanity check
+                return rate
+    except Exception:
+        pass
+    return 0.05
 
 
 def assess_risk_score(volatility: float, hhi: float, beta: float, total_value: float) -> int:

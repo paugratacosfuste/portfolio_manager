@@ -80,6 +80,7 @@ def fetch_recent_news(tickers: List[str], limit: int = 10) -> Dict[str, List[Dic
             news_dict[ticker] = []
     return news_dict
 
+@st.cache_data(ttl=3600, show_spinner=False)
 def fetch_asset_metadata(tickers: List[str]) -> Dict[str, Dict]:
     meta = {}
     for ticker in tickers:

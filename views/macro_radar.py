@@ -3,93 +3,69 @@ import pandas as pd
 import joblib
 import os
 import yfinance as yf
+from ml_pipeline.features import fetch_macro_data, build_macro_features, MACRO_FEATURE_NAMES_V1
 
 def render_macro_radar():
     st.markdown("<h1>Macro Radar: Market Forecasting</h1>", unsafe_allow_html=True)
     st.markdown("<p>Understand how macroeconomic headwinds or tailwinds affect your portfolio.</p>", unsafe_allow_html=True)
     
-    # ML TRANSPARENCY SECTION
-    with st.expander("About the Machine Learning Model (Transparency)"):
-        st.markdown("""
-        **Model Overview:**
-        This prediction is powered by a **Random Forest Classifier** trained entirely offline.
-        
-        **Data Source:**
-        The model was trained on 24 years of daily historical data (Jan 2000 - Jan 2024) fetched via `yfinance`. 
-        Features include:
-        - **S&P 500 (^GSPC)**: Broad market returns.
-        - **VIX (^VIX)**: Market volatility / Fear Index.
-        - **US 10-Year Treasury Yield (^TNX)**: Interest rate proxy.
-        - **US Dollar Index (DX-Y.NYB)**: Currency strength.
-        
-        **Performance Metrics:**
-        - **Accuracy:** ~78.9%
-        - **Target:** Predicting if the S&P 500 will have a negative return (Correction) 21 trading days into the future.
-        """)
-        
     model_path = "ml_pipeline/macro_risk_model.joblib"
-    
+
     if not os.path.exists(model_path):
         st.warning("Macro Risk Model not found. Please ensure Phase 2 (train_model.py) was completed.")
         return
-        
-    # Load model
+
+    # Load model FIRST so we can inspect it in the transparency section
     try:
         model = joblib.load(model_path)
     except Exception as e:
         st.error(f"Error loading ML model: {e}")
         return
 
-    # Fetch macro data
+    # Read training metadata from eval artifacts for accurate descriptions
+    _clf_name = type(model.named_steps["clf"]).__name__
+    _data_end = "present"
+    _eval_path = "ml_pipeline/macro_eval_results.joblib"
+    if os.path.exists(_eval_path):
+        try:
+            _eval_meta = joblib.load(_eval_path)
+            _data_end = _eval_meta.get('data_end_date', 'present')
+        except Exception:
+            pass
+
+    # ML TRANSPARENCY SECTION
+    with st.expander("About the Machine Learning Model (Transparency)"):
+        st.markdown(f"""
+        **Model Overview:**
+        This prediction is powered by a **{_clf_name}** selected as the best performer from a 4-model comparison
+        (Logistic Regression, Random Forest, Gradient Boosting, XGBoost) via `GridSearchCV` with 5-fold `TimeSeriesSplit`, scored by AUC-ROC.
+
+        **Data Source:**
+        Trained on daily macro data (Jan 2000 – {_data_end}) fetched via `yfinance`.
+        Features (12 engineered from 4 macro instruments):
+        - **S&P 500 (^GSPC)**: Price levels, daily returns, 20-day realized volatility, 200-day MA deviation
+        - **VIX (^VIX)**: Level, daily change, 252-day z-score
+        - **US 10-Year Treasury Yield (^TNX)**: Level, daily change, 20-day rolling std
+        - **US Dollar Index (DX-Y.NYB)**: Level, daily return
+
+        **Target:** Predicting if the S&P 500 will drop > 5% over the next 21 trading days.
+
+        **Note:** See the **ML Transparency** tab for full evaluation metrics (classification report, ROC/PR curves, calibration, cross-validation, learning curves, feature importances).
+        """)
+
+    # Fetch macro data using centralized pipeline (eliminates code duplication)
     with st.spinner("Fetching latest macro data..."):
-        ticker_map = {'^GSPC': 'SP500', '^TNX': 'US10Y', '^VIX': 'VIX'}
-        dxy_tickers = ['DX-Y.NYB', 'DX=F']
-        frames = {}
-
-        def _download_close(yf_ticker):
-            t_data = yf.download(yf_ticker, period="2y", progress=False)
-            if t_data.empty:
-                return None
-            if isinstance(t_data.columns, pd.MultiIndex):
-                return t_data['Close'].iloc[:, 0]
-            elif 'Close' in t_data.columns:
-                return t_data['Close']
-            return t_data.iloc[:, 0]
-
-        for yf_ticker, col_name in ticker_map.items():
-            try:
-                close = _download_close(yf_ticker)
-                if close is not None and len(close) > 0:
-                    frames[col_name] = close
-            except Exception as e:
-                st.warning(f"Could not fetch {col_name}: {e}")
-
-        for dxy_ticker in dxy_tickers:
-            try:
-                close = _download_close(dxy_ticker)
-                if close is not None and len(close) > 0:
-                    frames['DXY'] = close
-                    break
-            except Exception:
-                pass
-
-        missing = [k for k in ['SP500', 'US10Y', 'VIX', 'DXY'] if k not in frames]
-        if missing:
-            st.error(f"Could not fetch data for: {missing}. Try refreshing.")
+        try:
+            df = fetch_macro_data(period="2y")
+        except ValueError as e:
+            st.error(f"Could not fetch data: {e}. Try refreshing.")
             return
 
-    # Feature engineering
+    # Feature engineering using shared module (identical to training)
     try:
-        df = pd.DataFrame(frames).dropna(how='all').ffill().dropna()
-        df['SP500_Return'] = df['SP500'].pct_change()
-        df['VIX_Change'] = df['VIX'].diff()
-        df['US10Y_Change'] = df['US10Y'].diff()
-        df['DXY_Return'] = df['DXY'].pct_change()
-        df['SP500_20d_vol'] = df['SP500_Return'].rolling(20).std()
-        df['SP500_200d_ma_diff'] = df['SP500'] / df['SP500'].rolling(200).mean() - 1
-        df['VIX_zscore'] = (df['VIX'] - df['VIX'].rolling(252).mean()) / df['VIX'].rolling(252).std()
-        df['US10Y_20d_std'] = df['US10Y_Change'].rolling(20).std()
-        latest_data = df.dropna().iloc[-1:]
+        df = build_macro_features(df)
+        # Select only v1 features (12) first, THEN dropna — avoids v2 features causing row loss
+        latest_data = df[MACRO_FEATURE_NAMES_V1].dropna().iloc[-1:]
     except Exception as e:
         st.error(f"Error computing features: {e}")
         return
@@ -101,6 +77,39 @@ def render_macro_radar():
     except Exception as e:
         st.error(f"Error running model inference: {e}")
         return
+
+    # Store macro prediction for cross-view consumption
+    st.session_state['macro_prediction'] = {
+        'probability': float(probability),
+        'prediction': int(prediction),
+        'vix': round(float(latest_data['VIX'].iloc[0]), 1),
+        'sp500_vs_200ma': round(float(latest_data['SP500_200d_ma_diff'].iloc[0] * 100), 1),
+    }
+
+    # Track prediction history for consistency monitoring
+    if 'macro_prediction_history' not in st.session_state:
+        st.session_state['macro_prediction_history'] = []
+    import datetime as _dt
+    st.session_state['macro_prediction_history'].append({
+        'timestamp': _dt.datetime.now().isoformat(),
+        'prediction': int(prediction),
+        'probability': round(float(probability), 3),
+    })
+    # Keep last 30 predictions
+    st.session_state['macro_prediction_history'] = st.session_state['macro_prediction_history'][-30:]
+
+    # Model staleness warning
+    eval_path = "ml_pipeline/macro_eval_results.joblib"
+    if os.path.exists(eval_path):
+        try:
+            _eval = joblib.load(eval_path)
+            data_end = _eval.get('data_end_date', '2024-01-01')
+            _end_dt = _dt.datetime.strptime(data_end, '%Y-%m-%d')
+            _months_old = (_dt.datetime.now() - _end_dt).days / 30
+            if _months_old > 12:
+                st.warning(f"Model trained on data ending {data_end} ({_months_old:.0f} months ago). Consider retraining for better accuracy.")
+        except Exception:
+            pass
 
     st.markdown("### 1-Month Market Outlook")
 
@@ -124,6 +133,34 @@ def render_macro_radar():
         </div>
         """
         st.markdown(html2, unsafe_allow_html=True)
+
+    # Show key macro indicators driving the prediction
+    st.markdown("### Key Macro Indicators")
+    ind_col1, ind_col2, ind_col3, ind_col4 = st.columns(4)
+    with ind_col1:
+        vix_val = float(latest_data['VIX'].iloc[0])
+        vix_color = "#C44536" if vix_val > 25 else ("#E08C3A" if vix_val > 18 else "#1F8A70")
+        st.markdown(f"<div style='background:#fff;padding:12px;border-radius:8px;border:1px solid #E0E7EF;text-align:center;'><div style='color:#666;font-size:0.75rem;'>VIX</div><div style='font-size:1.3rem;font-weight:700;color:{vix_color};'>{vix_val:.1f}</div></div>", unsafe_allow_html=True)
+    with ind_col2:
+        ma_diff = float(latest_data['SP500_200d_ma_diff'].iloc[0]) * 100
+        ma_color = "#1F8A70" if ma_diff > 0 else "#C44536"
+        st.markdown(f"<div style='background:#fff;padding:12px;border-radius:8px;border:1px solid #E0E7EF;text-align:center;'><div style='color:#666;font-size:0.75rem;'>S&P vs 200d MA</div><div style='font-size:1.3rem;font-weight:700;color:{ma_color};'>{ma_diff:+.1f}%</div></div>", unsafe_allow_html=True)
+    with ind_col3:
+        vol_20d = float(latest_data['SP500_20d_vol'].iloc[0]) * 100
+        vol_color = "#C44536" if vol_20d > 2 else "#1F8A70"
+        st.markdown(f"<div style='background:#fff;padding:12px;border-radius:8px;border:1px solid #E0E7EF;text-align:center;'><div style='color:#666;font-size:0.75rem;'>20d Realized Vol</div><div style='font-size:1.3rem;font-weight:700;color:{vol_color};'>{vol_20d:.2f}%</div></div>", unsafe_allow_html=True)
+    with ind_col4:
+        vix_z = float(latest_data['VIX_zscore'].iloc[0])
+        z_color = "#C44536" if vix_z > 1 else ("#E08C3A" if vix_z > 0.5 else "#1F8A70")
+        st.markdown(f"<div style='background:#fff;padding:12px;border-radius:8px;border:1px solid #E0E7EF;text-align:center;'><div style='color:#666;font-size:0.75rem;'>VIX Z-Score</div><div style='font-size:1.3rem;font-weight:700;color:{z_color};'>{vix_z:+.2f}</div></div>", unsafe_allow_html=True)
+
+    # Prediction consistency tracker
+    pred_history = st.session_state.get('macro_prediction_history', [])
+    if len(pred_history) > 1:
+        recent_preds = [p['prediction'] for p in pred_history[-10:]]
+        stable_count = sum(1 for p in recent_preds if p == 0)
+        correction_count = len(recent_preds) - stable_count
+        st.caption(f"Prediction consistency (last {len(recent_preds)} checks): {stable_count} stable, {correction_count} correction signals")
 
     # Explain with Claude
     st.markdown("<br><br>", unsafe_allow_html=True)

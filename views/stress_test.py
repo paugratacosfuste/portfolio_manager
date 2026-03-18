@@ -88,7 +88,10 @@ This combines LLM reasoning (understanding *why* tech stocks would drop in a tec
             })
 
         with st.spinner("Claude is analyzing scenario impacts on each holding..."):
-            scenario_data = generate_stress_scenario(scenario_text, holdings_with_meta)
+            scenario_data = generate_stress_scenario(
+                scenario_text, holdings_with_meta,
+                eli10_mode=st.session_state.get('eli10_mode', False),
+            )
 
         if "error" in scenario_data:
             st.error(f"Error: {scenario_data['error']}")
@@ -96,6 +99,14 @@ This combines LLM reasoning (understanding *why* tech stocks would drop in a tec
 
         with st.spinner("Applying stress to portfolio..."):
             results = apply_stress_to_portfolio(holdings, prices, scenario_data)
+
+        # Store results for cross-view consumption (LLM prompts, suggestions)
+        st.session_state['last_stress_test'] = {
+            'scenario_name': results.get('scenario_name', ''),
+            'total_loss_pct': results.get('total_loss_pct', 0),
+            'worst_holding': min(results.get('holdings_impact', [{}]), key=lambda x: x.get('drawdown_pct', 0), default={}),
+            'best_holding': max(results.get('holdings_impact', [{}]), key=lambda x: x.get('drawdown_pct', 0), default={}),
+        }
 
         # ── Results Display ───────────────────────────────────────────────
         st.markdown("---")

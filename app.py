@@ -41,39 +41,41 @@ from views.macro_radar import render_macro_radar
 from views.news import render_news
 from views.popular_portfolios import render_popular_portfolios
 from views.ml_transparency import render_ml_transparency
+from views.efficient_frontier import render_efficient_frontier
+from views.backtest import render_backtest
 
 def main():
     # Render Sidebar and get user inputs
     profile, holdings = render_sidebar()
-    
+
     # Store globally in session state
     st.session_state.profile = profile
     st.session_state.holdings = holdings
-    
+
     selected_page = st.radio(
         "Navigation",
-        ["Dashboard", "AI Chat", "Stress Test", "Suggestions", "Macro Radar", "News & Sentiment", "Standard Portfolios", "ML Transparency"],
+        ["Dashboard", "AI Chat", "Stress Test", "Suggestions", "Macro Radar", "News & Sentiment", "Efficient Frontier", "Backtest", "Standard Portfolios", "ML Transparency"],
         horizontal=True,
         label_visibility="collapsed"
     )
 
     with st.expander("About This App — Technical Overview"):
         st.markdown("""
-**AI Portfolio Advisor** is a full-stack portfolio analytics platform built with Streamlit, combining real-time market data with multiple AI/ML integration patterns.
+**AI Portfolio Advisor** is a full-stack portfolio analytics platform built with Streamlit, combining real-time market data with multiple AI/ML integration patterns and a unified cross-component signal pipeline.
 
 **4 LLM Integration Patterns:**
 1. **Single-call summarisation** (Haiku) — Portfolio advice, news summaries, macro analysis
 2. **Agentic tool-use loop** (Sonnet) — Chatbot with 6 tools that Claude calls autonomously across multiple turns
 3. **Structured JSON generation** (Sonnet) — Stress-test scenario parameters generated as validated JSON
-4. **Orchestrated multi-step decision chain** (Sonnet) — AI Autopilot: Claude proposes trades → Python simulates → Claude synthesises recommendation
+4. **Orchestrated multi-step decision chain** (Sonnet) — AI Autopilot: Claude proposes trades → Python simulates → Claude synthesises recommendation — enriched with macro, sentiment, efficient frontier, stress test, and backtest signals
 
-**2 Custom ML Models:**
-- **Macro Risk Model** — Random Forest Classifier (AUC 0.81, Accuracy 78.9%) trained on 24 years of macro data
-- **Sentiment Model** — Logistic Regression + TF-IDF (Accuracy 80.1%) trained on ~6,000 financial tweets
+**2 Custom ML Models (trained via GridSearchCV pipelines):**
+- **Macro Risk Model** — Best-of-4 classifier (Logistic Regression, Random Forest, Gradient Boosting, XGBoost) selected by AUC-ROC via 5-fold `TimeSeriesSplit`. Trained on 24 years of macro data (12 features) with balanced class handling.
+- **Sentiment Model** — Logistic Regression + TF-IDF with GridSearchCV over C, max_features, and n-gram range. Trained on ~6,000 financial tweets using time-ordered sequential split.
 
-**Key Features:** Real-time portfolio tracking, AI chatbot with tool transparency, stress testing, risk gap analysis, news sentiment, macro forecasting, standard portfolio benchmarking, full ML transparency with confusion matrices & ROC curves, and session-level LLM cost/token tracking.
+**Cross-Component Signal Pipeline:** ML macro predictions, NLP sentiment scores, efficient frontier optimal weights, stress test vulnerabilities, and backtest performance all flow into a shared signal registry — enriching every LLM prompt with quantitative context. Risk metrics use a dynamic risk-free rate (live US 10Y Treasury yield) and include CVaR (Conditional Value at Risk) alongside Sharpe, Beta, HHI, and Max Drawdown.
 
-See the **ML Transparency** tab for full model evaluation (confusion matrices, ROC curves, feature importances, and model limitations).
+See the **ML Transparency** tab for full model evaluation (classification reports, ROC curves, PR curves, calibration, cross-validation, learning curves, feature importances, and model limitations).
 """)
 
     st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
@@ -100,6 +102,10 @@ See the **ML Transparency** tab for full model evaluation (confusion matrices, R
         render_macro_radar()
     elif selected_page == "News & Sentiment":
         render_news()
+    elif selected_page == "Efficient Frontier":
+        render_efficient_frontier()
+    elif selected_page == "Backtest":
+        render_backtest()
     elif selected_page == "Standard Portfolios":
         render_popular_portfolios()
 

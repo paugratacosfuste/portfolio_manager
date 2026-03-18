@@ -92,10 +92,70 @@ CALCULATED RISK METRICS:
 - Concentration Risk (HHI): {risk_metrics.get('hhi', 0):.1f} / 10000
 - Overall Risk Score: {risk_metrics.get('risk_score', 0)} / 100
 
-MACRO ENVIRONMENT (ML Model Prediction):
+MACRO ENVIRONMENT (ML Model Prediction — best-of-4 classifier selected by AUC-ROC):
 - Probability of Market Correction (next month): {macro_prediction.get('probability', 0)*100:.1f}%
 - Predicted Scenario: {"Correction expected" if macro_prediction.get('prediction') == 1 else "Market stable"}
+- Current VIX: {macro_prediction.get('vix', 'N/A')}
+- S&P 500 vs 200-day MA: {macro_prediction.get('sp500_vs_200ma', 'N/A')}%
+- Model confidence note: moderate AUC — treat as a directional signal, not a precise forecast
+"""
 
+    # Dynamically add sentiment if available
+    try:
+        import streamlit as _st
+        sentiment_data = _st.session_state.get('portfolio_sentiment')
+        if sentiment_data:
+            prompt += f"""
+SENTIMENT SIGNAL (NLP Model — Logistic Regression + TF-IDF, GridSearchCV-tuned):
+- Portfolio-weighted news sentiment: {sentiment_data['score']:+.3f} (range -1 to +1)
+- Most negative: {sentiment_data['worst_ticker']} ({sentiment_data['worst_score']:+.3f})
+- Most positive: {sentiment_data['best_ticker']} ({sentiment_data['best_score']:+.3f})
+"""
+    except Exception:
+        pass
+
+    # Add stress test context if available
+    try:
+        stress_data = _st.session_state.get('last_stress_test')
+        if stress_data:
+            prompt += f"""
+STRESS TEST RESULT (most recent):
+- Scenario: {stress_data.get('scenario_name', 'N/A')}
+- Portfolio loss: {stress_data.get('total_loss_pct', 'N/A')}%
+- Worst-hit holding: {stress_data.get('worst_holding', {}).get('ticker', 'N/A')} ({stress_data.get('worst_holding', {}).get('drawdown_pct', 'N/A')}%)
+- Most resilient: {stress_data.get('best_holding', {}).get('ticker', 'N/A')} ({stress_data.get('best_holding', {}).get('drawdown_pct', 'N/A')}%)
+"""
+    except Exception:
+        pass
+
+    # Add efficient frontier context if available
+    try:
+        optimal = _st.session_state.get('optimal_weights')
+        if optimal:
+            max_s = optimal.get('max_sharpe', {})
+            prompt += f"""
+EFFICIENT FRONTIER (MPT Optimization):
+- Your Sharpe: {optimal.get('current_sharpe', 'N/A')} | Max achievable Sharpe: {max_s.get('sharpe', 'N/A')}
+- Optimization suggests: {', '.join(f"{t}: {w*100:.1f}%" for t, w in list(max_s.get('weights', {}).items())[:5])}
+"""
+    except Exception:
+        pass
+
+    # Add backtest context if available
+    try:
+        bt = _st.session_state.get('backtest_metrics')
+        if bt and bt.get('portfolio'):
+            port_bt = bt['portfolio']
+            spy_bt = bt.get('spy', {})
+            prompt += f"""
+BACKTEST ({bt.get('lookback', '1y')} lookback):
+- Portfolio: {port_bt.get('Annualized Return', 'N/A')} return, {port_bt.get('Sharpe Ratio', 'N/A')} Sharpe, {port_bt.get('Max Drawdown', 'N/A')} max drawdown
+- SPY benchmark: {spy_bt.get('Annualized Return', 'N/A')} return, {spy_bt.get('Sharpe Ratio', 'N/A')} Sharpe
+"""
+    except Exception:
+        pass
+
+    prompt += """
 YOUR TASK:
 Act as an expert, fiduciary financial advisor. Analyze the gap between my 'Stated Risk Tolerance' and the actual math of my 'Calculated Risk Metrics'.
 Also consider the 'Macro Environment' prediction.
@@ -232,6 +292,7 @@ def generate_autopilot_recommendations(
     prices: Dict[str, float],
     risk_metrics: Dict[str, Any],
     profile: Dict[str, Any],
+    eli10_mode: bool = False,
 ) -> Dict[str, Any]:
     """
     4-step orchestrated LLM chain:
@@ -252,6 +313,48 @@ def generate_autopilot_recommendations(
         for t in holdings
     )
 
+    # ── Gather cross-view signals for richer context ─────────────────────
+    import streamlit as _st
+    _sentiment = _st.session_state.get('portfolio_sentiment')
+    _macro = _st.session_state.get('macro_prediction')
+    _optimal = _st.session_state.get('optimal_weights')
+    _stress = _st.session_state.get('last_stress_test')
+    _backtest = _st.session_state.get('backtest_metrics')
+
+    extra_context = ""
+    if _macro:
+        extra_context += f"""
+MACRO ENVIRONMENT (ML Model — best-of-4 classifier):
+- Correction probability: {_macro.get('probability', 0)*100:.1f}%
+- VIX: {_macro.get('vix', 'N/A')} | S&P vs 200d MA: {_macro.get('sp500_vs_200ma', 'N/A')}%
+"""
+    if _sentiment:
+        extra_context += f"""
+NEWS SENTIMENT (NLP Model — GridSearchCV-tuned):
+- Portfolio-weighted sentiment: {_sentiment.get('score', 0):+.3f}
+- Most negative: {_sentiment.get('worst_ticker', 'N/A')} ({_sentiment.get('worst_score', 0):+.3f})
+- Most positive: {_sentiment.get('best_ticker', 'N/A')} ({_sentiment.get('best_score', 0):+.3f})
+"""
+    if _optimal:
+        ms = _optimal.get('max_sharpe', {})
+        extra_context += f"""
+EFFICIENT FRONTIER:
+- Current Sharpe: {_optimal.get('current_sharpe', 'N/A')} | Max achievable: {ms.get('sharpe', 'N/A')}
+- Optimal allocation top changes: {', '.join(f"{t}: {w*100:.0f}%" for t, w in list(ms.get('weights', {}).items())[:4])}
+"""
+    if _stress:
+        extra_context += f"""
+STRESS TEST ({_stress.get('scenario_name', 'N/A')}):
+- Portfolio loss: {_stress.get('total_loss_pct', 'N/A')}%
+- Worst: {_stress.get('worst_holding', {}).get('ticker', 'N/A')} ({_stress.get('worst_holding', {}).get('drawdown_pct', 'N/A')}%)
+"""
+    if _backtest and _backtest.get('portfolio'):
+        pb = _backtest['portfolio']
+        extra_context += f"""
+BACKTEST ({_backtest.get('lookback', 'N/A')}):
+- Return: {pb.get('Annualized Return', 'N/A')} | Sharpe: {pb.get('Sharpe Ratio', 'N/A')} | Max DD: {pb.get('Max Drawdown', 'N/A')}
+"""
+
     # ── STEP 1: Claude proposes 3 trades ──────────────────────────────────
     step1_prompt = f"""You are an expert portfolio strategist. Analyze this portfolio and propose exactly 3 trade options to improve it.
 
@@ -268,7 +371,7 @@ RISK METRICS:
 - Sharpe: {risk_metrics.get('sharpe', 0):.2f}
 - HHI: {risk_metrics.get('hhi', 0):.0f}
 - Max Drawdown: {risk_metrics.get('max_drawdown', 0)*100:.1f}%
-
+{extra_context}
 Respond with ONLY a JSON array of exactly 3 trade proposals. No markdown fences, no commentary:
 [
   {{"action": "buy", "ticker": "...", "quantity": <int>, "rationale": "..."}},
@@ -288,7 +391,9 @@ Rules:
         resp1 = client.messages.create(
             model=_model,
             max_tokens=800,
-            system="You are a quantitative portfolio strategist. Respond ONLY with valid JSON, no markdown fences.",
+            system="You are a quantitative portfolio strategist. Respond ONLY with valid JSON, no markdown fences."
+                   if not eli10_mode else
+                   "You are a friendly financial helper explaining things to a 10-year-old. Respond ONLY with valid JSON, no markdown fences. Use simple rationale text a child could understand.",
             messages=[{"role": "user", "content": step1_prompt}],
         )
         track_llm_usage(resp1, _model, time.time() - t0)
@@ -299,6 +404,20 @@ Rules:
             if raw.endswith("```"):
                 raw = raw[:-3]
         proposals = json.loads(raw)
+
+        # Validate proposal schema
+        required_keys = {'action', 'ticker', 'quantity', 'rationale'}
+        for i, p in enumerate(proposals):
+            if not isinstance(p, dict):
+                return {"error": f"Proposal {i} is not a dict: {p}"}
+            missing = required_keys - set(p.keys())
+            if missing:
+                return {"error": f"Proposal {i} missing keys: {missing}"}
+            if p.get('action') not in ('buy', 'sell'):
+                return {"error": f"Proposal {i} has invalid action: {p.get('action')}"}
+            if not isinstance(p.get('quantity'), (int, float)) or p['quantity'] <= 0:
+                return {"error": f"Proposal {i} has invalid quantity: {p.get('quantity')}"}
+
     except (json.JSONDecodeError, Exception) as e:
         return {"error": f"Step 1 failed — could not parse trade proposals: {e}"}
 
@@ -337,7 +456,7 @@ CURRENT METRICS:
 
 SIMULATION RESULTS:
 {sim_summary}
-
+{extra_context}
 INVESTOR: {profile.get('risk_tolerance', 'Moderate')} risk tolerance, {profile.get('horizon', 'Medium-term')} horizon.
 
 Provide a clear, structured final recommendation:
@@ -352,7 +471,9 @@ Use markdown formatting. Be concise but thorough."""
         resp3 = client.messages.create(
             model=_model,
             max_tokens=1000,
-            system="You are a precise, data-driven financial advisor. Use markdown formatting.",
+            system="You are a precise, data-driven financial advisor. Use markdown formatting."
+                   if not eli10_mode else
+                   "You are a friendly teacher explaining money advice to a 10-year-old. Use simple words, short sentences, and fun comparisons. Use markdown formatting.",
             messages=[{"role": "user", "content": step3_prompt}],
         )
         track_llm_usage(resp3, _model, time.time() - t0)

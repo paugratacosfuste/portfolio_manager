@@ -12,6 +12,7 @@ from utils.ai_advisor import client, track_llm_usage
 def generate_stress_scenario(
     scenario_description: str,
     holdings_with_metadata: List[Dict[str, Any]],
+    eli10_mode: bool = False,
 ) -> Dict[str, Any]:
     """
     Calls Claude with a sophisticated prompt to generate structured JSON
@@ -31,11 +32,19 @@ def generate_stress_scenario(
         ]
     )
 
-    system_prompt = (
-        "You are a quantitative risk analyst. You must respond with ONLY valid JSON, "
-        "no markdown fences, no commentary outside the JSON. "
-        "Generate a realistic stress-test scenario with per-holding drawdown estimates."
-    )
+    if eli10_mode:
+        system_prompt = (
+            "You are a friendly teacher explaining a scary money situation to a 10-year-old. "
+            "You must respond with ONLY valid JSON, no markdown fences, no commentary outside the JSON. "
+            "Use simple words a child would understand in all text fields (scenario_summary and rationale). "
+            "Generate a realistic stress-test scenario with per-holding drawdown estimates."
+        )
+    else:
+        system_prompt = (
+            "You are a quantitative risk analyst. You must respond with ONLY valid JSON, "
+            "no markdown fences, no commentary outside the JSON. "
+            "Generate a realistic stress-test scenario with per-holding drawdown estimates."
+        )
 
     user_prompt = f"""Given this stress scenario: "{scenario_description}"
 

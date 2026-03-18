@@ -4,7 +4,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from utils.data_fetcher import fetch_historical_data, fetch_current_prices
 from utils.data_fetcher import fetch_asset_metadata
-from utils.portfolio_metrics import calculate_portfolio_volatility, calculate_portfolio_beta, calculate_hhi_index, assess_risk_score, calculate_sharpe_ratio, calculate_max_drawdown
+from utils.portfolio_metrics import calculate_portfolio_volatility, calculate_portfolio_beta, calculate_hhi_index, assess_risk_score, calculate_sharpe_ratio, calculate_max_drawdown, calculate_cvar
 
 def render_suggestions():
     st.markdown("<h1>Risk Analysis & Suggestions</h1>", unsafe_allow_html=True)
@@ -49,9 +49,10 @@ def render_suggestions():
             risk_score = assess_risk_score(volatility, hhi, beta, total_value)
             sharpe = calculate_sharpe_ratio(prices_df[valid_tickers_for_risk], weights)
             max_dd = calculate_max_drawdown(prices_df[valid_tickers_for_risk], weights)
+            cvar_95 = calculate_cvar(prices_df[valid_tickers_for_risk], weights, confidence=0.95)
         else:
             volatility, beta, hhi, risk_score = 0.0, 1.0, calculate_hhi_index(weights), 50
-            sharpe, max_dd = 0.0, 0.0
+            sharpe, max_dd, cvar_95 = 0.0, 0.0, 0.0
             st.info("Currently gathering enough historical market data for full probabilistic risk metrics. Relying on baseline mapping.")
             
         # Get metadata for grouping
@@ -111,16 +112,28 @@ def render_suggestions():
     # ── METRICS COMPARISON BLOCKS ─────────────────────────────────────────────
     st.markdown(f"### Profile: {risk_level} Investor")
     
-    col1, col2, col3, col4, col5 = st.columns(5)
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
+
+    metric_tooltips = {
+        "Annualized Volatility": "Measures how much your portfolio value fluctuates. Below 10% is low risk, 10-20% is moderate, above 20% is high risk.",
+        "Portfolio Beta": "Sensitivity to market moves. Beta=1 means you move with the market. Below 1 is defensive, above 1 is aggressive.",
+        "Concentration (HHI)": "How concentrated your portfolio is. Below 2000 is diversified. Above 4000 means too much in a few assets.",
+        "Sharpe Ratio": "Risk-adjusted return. Above 1.0 is good, above 2.0 is excellent, below 0 means you're losing money vs risk-free rate.",
+        "Max Drawdown": "Worst peak-to-trough loss. Above -10% is mild, -10% to -20% is moderate, below -20% is severe.",
+        "CVaR (95%)": "Conditional Value at Risk: average daily loss on the worst 5% of days. More robust than max drawdown for measuring tail risk.",
+    }
 
     def _metric_card(title, current, ideal, status_color, suffix=""):
+        tooltip = metric_tooltips.get(title, "")
+        tooltip_html = f'<div style="color:#888; font-size:0.7rem; margin-top:4px; font-style:italic;">{tooltip}</div>' if tooltip else ""
         return f"""
-        <div style="background:#fff; padding:15px; border-radius:10px; border:1px solid #E0E7EF; text-align:center;">
+        <div style="background:#fff; padding:15px; border-radius:10px; border:1px solid #E0E7EF; text-align:center; height:260px; display:flex; flex-direction:column; justify-content:center;">
             <div style="color:#666; font-size:0.85rem; font-weight:600; text-transform:uppercase;">{title}</div>
             <div style="font-size:1.8rem; font-weight:700; color:#0B1F3A; margin:5px 0;">{current}{suffix}</div>
             <div style="font-size:0.8rem; color:{status_color}; font-weight:600; background:{status_color}15; padding:3px 8px; border-radius:12px; display:inline-block;">
                 Target: {ideal}{suffix}
             </div>
+            {tooltip_html}
         </div>
         """
 
@@ -139,6 +152,9 @@ def render_suggestions():
         st.markdown(_metric_card("Sharpe Ratio", f"{sharpe:.2f}", ">0.50", sharpe_color), unsafe_allow_html=True)
     with col5:
         st.markdown(_metric_card("Max Drawdown", f"{max_dd*100:.1f}", ">-10.0", dd_color, "%"), unsafe_allow_html=True)
+    with col6:
+        cvar_color = "#1F8A70" if cvar_95 > -0.015 else ("#E08C3A" if cvar_95 > -0.025 else "#C44536")
+        st.markdown(_metric_card("CVaR (95%)", f"{cvar_95*100:.2f}", ">-1.5", cvar_color, "%"), unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -225,13 +241,33 @@ def render_suggestions():
     portfolio_data = {'holdings': holdings, 'weights': weights, 'total_value': total_value}
     metrics_data = {'volatility': volatility, 'beta': beta, 'hhi': hhi, 'risk_score': risk_score}
     from utils.ai_advisor import generate_portfolio_advice
-    
+
+    # Fetch LIVE macro prediction instead of hardcoded placeholder
+    from utils.chatbot_tools import _execute_get_macro_prediction
+    import json as _json
+    try:
+        _macro_raw = _execute_get_macro_prediction()
+        _macro = _json.loads(_macro_raw)
+        if 'error' not in _macro:
+            macro_prediction = {
+                'probability': _macro.get('correction_probability_pct', 50) / 100,
+                'prediction': 1 if _macro.get('prediction') == 'Market correction likely' else 0,
+                'vix': _macro.get('current_vix', 'N/A'),
+                'sp500_vs_200ma': _macro.get('sp500_vs_200ma_pct', 'N/A'),
+            }
+            # Store for other views
+            st.session_state['macro_prediction'] = macro_prediction
+        else:
+            macro_prediction = st.session_state.get('macro_prediction', {'probability': 0.5, 'prediction': 0})
+    except Exception:
+        macro_prediction = st.session_state.get('macro_prediction', {'probability': 0.5, 'prediction': 0})
+
     if st.button("Generate Actionable Swap In/Out Recommendations"):
         with st.spinner("Claude is analyzing your structural gaps..."):
             advice = generate_portfolio_advice(
                 portfolio_data=portfolio_data,
                 risk_metrics=metrics_data,
-                macro_prediction={'probability': 0.5, 'prediction': 0},
+                macro_prediction=macro_prediction,
                 user_profile=profile,
                 eli10_mode=st.session_state.get('eli10_mode', False)
             )
@@ -265,6 +301,7 @@ def render_suggestions():
                 prices=current_prices,
                 risk_metrics=autopilot_metrics,
                 profile=profile,
+                eli10_mode=st.session_state.get('eli10_mode', False),
             )
             status.update(label="AI Autopilot complete", state="complete", expanded=True)
 

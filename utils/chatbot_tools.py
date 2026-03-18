@@ -13,6 +13,7 @@ from utils.portfolio_metrics import (
     assess_risk_score,
     calculate_sharpe_ratio,
     calculate_max_drawdown,
+    calculate_cvar,
 )
 
 # ── Anthropic-format tool schemas ─────────────────────────────────────────────
@@ -168,8 +169,9 @@ def _execute_calculate_portfolio_risk(holdings: Dict[str, float]) -> str:
         risk_score = assess_risk_score(volatility, hhi, beta, total_value)
         sharpe = calculate_sharpe_ratio(hist[valid], weights)
         max_dd = calculate_max_drawdown(hist[valid], weights)
+        cvar = calculate_cvar(hist[valid], weights)
     else:
-        volatility, beta, hhi, risk_score, sharpe, max_dd = 0.0, 1.0, calculate_hhi_index(weights), 50, 0.0, 0.0
+        volatility, beta, hhi, risk_score, sharpe, max_dd, cvar = 0.0, 1.0, calculate_hhi_index(weights), 50, 0.0, 0.0, 0.0
 
     return json.dumps({
         "total_value": round(total_value, 2),
@@ -179,6 +181,7 @@ def _execute_calculate_portfolio_risk(holdings: Dict[str, float]) -> str:
         "risk_score": risk_score,
         "sharpe_ratio": round(sharpe, 2),
         "max_drawdown_pct": round(max_dd * 100, 1),
+        "cvar_95_pct": round(cvar * 100, 2),
     })
 
 
@@ -238,68 +241,15 @@ def _execute_get_market_news(ticker: str) -> str:
 
 def _execute_get_macro_prediction() -> str:
     """Loads the macro risk model and returns a market correction prediction.
-    Downloads each macro ticker individually for reliability."""
+    Uses centralized feature engineering from ml_pipeline.features."""
     try:
         import joblib
-        import numpy as np
-        import yfinance as yf
-        import pandas as pd
+        from ml_pipeline.features import get_latest_macro_features
 
         model = joblib.load("ml_pipeline/macro_risk_model.joblib")
 
-        # Download each ticker individually to avoid batch download issues
-        ticker_map = {'^GSPC': 'SP500', '^TNX': 'US10Y', '^VIX': 'VIX'}
-        dxy_tickers = ['DX-Y.NYB', 'DX=F']  # fallback for Dollar Index
-        frames = {}
-
-        def _dl_close(yf_ticker):
-            t_data = yf.download(yf_ticker, period="2y", progress=False)
-            if t_data.empty:
-                return None
-            if isinstance(t_data.columns, pd.MultiIndex):
-                return t_data['Close'].iloc[:, 0]
-            elif 'Close' in t_data.columns:
-                return t_data['Close']
-            return t_data.iloc[:, 0]
-
-        for yf_ticker, col_name in ticker_map.items():
-            try:
-                close = _dl_close(yf_ticker)
-                if close is not None and len(close) > 0:
-                    frames[col_name] = close
-            except Exception:
-                pass
-
-        for dxy_ticker in dxy_tickers:
-            try:
-                close = _dl_close(dxy_ticker)
-                if close is not None and len(close) > 0:
-                    frames['DXY'] = close
-                    break
-            except Exception:
-                pass
-
-        missing = [k for k in ['SP500', 'US10Y', 'VIX', 'DXY'] if k not in frames]
-        if missing:
-            return json.dumps({"error": f"Could not fetch macro data for: {missing}"})
-
-        df = pd.DataFrame(frames).dropna(how='all').ffill().dropna()
-
-        df['SP500_Return'] = df['SP500'].pct_change()
-        df['VIX_Change'] = df['VIX'].diff()
-        df['US10Y_Change'] = df['US10Y'].diff()
-        df['DXY_Return'] = df['DXY'].pct_change()
-
-        df['SP500_20d_vol'] = df['SP500_Return'].rolling(20).std()
-        df['SP500_200d_ma_diff'] = df['SP500'] / df['SP500'].rolling(200).mean() - 1
-        df['VIX_zscore'] = (df['VIX'] - df['VIX'].rolling(252).mean()) / df['VIX'].rolling(252).std()
-        df['US10Y_20d_std'] = df['US10Y_Change'].rolling(20).std()
-
-        df = df.dropna()
-        if df.empty:
-            return json.dumps({"error": "Not enough historical data for macro features."})
-
-        latest_data = df.iloc[-1:]
+        # Use centralized feature engineering (v1 = original 12 features for existing model)
+        latest_data = get_latest_macro_features(feature_version=1)
 
         prediction = int(model.predict(latest_data)[0])
         probability = float(model.predict_proba(latest_data)[0][1])
