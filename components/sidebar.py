@@ -114,5 +114,26 @@ def render_sidebar():
             "risk_tolerance": risk_tolerance,
             "horizon": horizon
         }
-        
+
+        # ── Session Stats (LLM Usage Dashboard) ──────────────────────────
+        st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
+        with st.expander("Session Stats (LLM Usage)"):
+            from utils.ai_advisor import get_llm_stats
+            stats = get_llm_stats()
+            calls = stats["total_calls"]
+            inp_tok = stats["input_tokens"]
+            out_tok = stats["output_tokens"]
+            cost = stats["total_cost"]
+            avg_lat = (stats["total_latency"] / calls) if calls > 0 else 0.0
+
+            def _fmt_tokens(n):
+                return f"{n/1000:.1f}K" if n >= 1000 else str(n)
+
+            st.markdown(
+                f"**API Calls:** {calls}  \n"
+                f"**Tokens:** {_fmt_tokens(inp_tok)} in / {_fmt_tokens(out_tok)} out  \n"
+                f"**Est. Cost:** ${cost:.4f}  \n"
+                f"**Avg Latency:** {avg_lat:.1f}s"
+            )
+
         return profile_dict, holdings_dict

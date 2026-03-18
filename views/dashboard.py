@@ -116,7 +116,7 @@ def render_dashboard():
     )
 
     # ── Correlation Heatmap ─────────────────────────────────────────────
-    if not hist_data.empty and len(tickers) > 1:
+    if hist_data is not None and not hist_data.empty and len(tickers) > 1:
         st.markdown("### Correlation Matrix")
         st.markdown(
             "<p style='color:#666; font-size:0.9rem;'>Daily return correlations between your holdings. "

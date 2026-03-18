@@ -125,7 +125,58 @@ def render_ml_transparency():
             st.dataframe(scaler_df, use_container_width=True, hide_index=True)
         except Exception as e:
             st.warning(f"Could not extract scaler statistics: {e}")
+
+    # --- Evaluation Metrics: Confusion Matrix & ROC ---
+    macro_eval_path = "ml_pipeline/macro_eval_results.joblib"
+    if os.path.exists(macro_eval_path):
+        eval_data = joblib.load(macro_eval_path)
+        y_test = eval_data["y_test"]
+        y_pred = eval_data["y_pred"]
+        y_prob = eval_data["y_prob"]
+
+        st.markdown("### Evaluation Metrics")
+        col_cm, col_roc = st.columns(2)
+
+        with col_cm:
+            from sklearn.metrics import confusion_matrix
+            cm = confusion_matrix(y_test, y_pred)
+            labels = ["Stable (0)", "Correction (1)"]
+            fig_cm = go.Figure(data=go.Heatmap(
+                z=cm, x=labels, y=labels,
+                colorscale=[[0, "#D4E5F5"], [1, "#3A6EA5"]],
+                text=cm, texttemplate="%{text}", textfont={"size": 16},
+                hovertemplate="Actual: %{y}<br>Predicted: %{x}<br>Count: %{z}<extra></extra>",
+                showscale=False,
+            ))
+            fig_cm.update_layout(
+                title="Confusion Matrix",
+                xaxis_title="Predicted", yaxis_title="Actual",
+                yaxis=dict(autorange="reversed"),
+                margin=dict(t=40, b=40, l=80, r=20),
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                height=350,
+            )
+            st.plotly_chart(fig_cm, use_container_width=True)
+
+        with col_roc:
+            from sklearn.metrics import roc_curve, auc
+            fpr, tpr, _ = roc_curve(y_test, y_prob)
+            roc_auc = auc(fpr, tpr)
+            fig_roc = go.Figure()
+            fig_roc.add_trace(go.Scatter(x=fpr, y=tpr, mode="lines", name=f"AUC = {roc_auc:.3f}", line=dict(color="#3A6EA5", width=2)))
+            fig_roc.add_trace(go.Scatter(x=[0, 1], y=[0, 1], mode="lines", line=dict(dash="dash", color="#999"), showlegend=False))
+            fig_roc.update_layout(
+                title=f"ROC Curve (AUC = {roc_auc:.3f})",
+                xaxis_title="False Positive Rate", yaxis_title="True Positive Rate",
+                margin=dict(t=40, b=40, l=40, r=20),
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                height=350, legend=dict(x=0.6, y=0.1),
+            )
+            st.plotly_chart(fig_roc, use_container_width=True)
     else:
+        st.info("Run `train_model.py` to generate evaluation artifacts for confusion matrix & ROC curve.")
+
+    if not os.path.exists(macro_path):
         st.warning("Macro Risk Model file not found (`ml_pipeline/macro_risk_model.joblib`).")
 
     # =====================================================================
@@ -244,5 +295,75 @@ def render_ml_transparency():
             st.dataframe(vec_df, use_container_width=True, hide_index=True)
         except Exception as e:
             st.warning(f"Could not extract vectorizer config: {e}")
+
+    # --- Evaluation Metrics: Confusion Matrix & ROC for Sentiment ---
+    sent_eval_path = "ml_pipeline/sentiment_eval_results.joblib"
+    if os.path.exists(sent_eval_path):
+        eval_sent = joblib.load(sent_eval_path)
+        y_test_s = eval_sent["y_test"]
+        y_pred_s = eval_sent["y_pred"]
+        y_prob_s = eval_sent["y_prob"]
+        classes_s = eval_sent.get("classes", sorted(set(y_test_s)))
+
+        st.markdown("### Evaluation Metrics")
+        col_cm2, col_roc2 = st.columns(2)
+
+        with col_cm2:
+            from sklearn.metrics import confusion_matrix
+            cm_s = confusion_matrix(y_test_s, y_pred_s, labels=classes_s)
+            class_labels = [str(c) for c in classes_s]
+            fig_cm2 = go.Figure(data=go.Heatmap(
+                z=cm_s, x=class_labels, y=class_labels,
+                colorscale=[[0, "#D4E5F5"], [1, "#1F8A70"]],
+                text=cm_s, texttemplate="%{text}", textfont={"size": 14},
+                hovertemplate="Actual: %{y}<br>Predicted: %{x}<br>Count: %{z}<extra></extra>",
+                showscale=False,
+            ))
+            fig_cm2.update_layout(
+                title="Confusion Matrix (Sentiment)",
+                xaxis_title="Predicted", yaxis_title="Actual",
+                yaxis=dict(autorange="reversed"),
+                margin=dict(t=40, b=40, l=80, r=20),
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                height=350,
+            )
+            st.plotly_chart(fig_cm2, use_container_width=True)
+
+        with col_roc2:
+            from sklearn.metrics import roc_curve, auc as sk_auc
+            # For binary or multi-class: use OvR macro approach for the positive class
+            if y_prob_s.ndim == 2 and y_prob_s.shape[1] == 2:
+                fpr_s, tpr_s, _ = roc_curve(y_test_s, y_prob_s[:, 1])
+            elif y_prob_s.ndim == 2:
+                # multi-class: use last column (highest sentiment) as positive
+                fpr_s, tpr_s, _ = roc_curve((y_test_s == classes_s[-1]).astype(int), y_prob_s[:, -1])
+            else:
+                fpr_s, tpr_s, _ = roc_curve(y_test_s, y_prob_s)
+            roc_auc_s = sk_auc(fpr_s, tpr_s)
+            fig_roc2 = go.Figure()
+            fig_roc2.add_trace(go.Scatter(x=fpr_s, y=tpr_s, mode="lines", name=f"AUC = {roc_auc_s:.3f}", line=dict(color="#1F8A70", width=2)))
+            fig_roc2.add_trace(go.Scatter(x=[0, 1], y=[0, 1], mode="lines", line=dict(dash="dash", color="#999"), showlegend=False))
+            fig_roc2.update_layout(
+                title=f"ROC Curve (AUC = {roc_auc_s:.3f})",
+                xaxis_title="False Positive Rate", yaxis_title="True Positive Rate",
+                margin=dict(t=40, b=40, l=40, r=20),
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                height=350, legend=dict(x=0.6, y=0.1),
+            )
+            st.plotly_chart(fig_roc2, use_container_width=True)
     else:
+        st.info("Run `train_sentiment_model.py` to generate evaluation artifacts for confusion matrix & ROC curve.")
+
+    if not os.path.exists(sentiment_path):
         st.warning("Sentiment Pipeline file not found (`ml_pipeline/sentiment_pipeline.joblib`).")
+
+    # ── Model Limitations ─────────────────────────────────────────────────
+    st.markdown("---")
+    st.markdown("## Model Limitations & Caveats")
+    st.markdown("""
+- **Class Imbalance (Macro Model):** ~88% of samples are class 0 (market stable). The model may under-predict corrections. Consider this when interpreting low correction probabilities.
+- **Time-Series Distribution Shift:** Both models were trained on historical data. Macro regimes change — a model trained on 2000-2024 data may not generalize to novel market structures (e.g., unprecedented monetary policy).
+- **Training Data Staleness:** The macro model uses data up to Jan 2024. It has not seen recent market events. Periodic retraining is recommended.
+- **Sentiment Model Scope:** Trained on ~6,000 financial tweets — a relatively small corpus. Performance may degrade on formal news language or non-English text.
+- **No Causal Claims:** Both models identify statistical correlations, not causal relationships. Use predictions as one signal among many, not as sole decision drivers.
+""")

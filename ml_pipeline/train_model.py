@@ -156,6 +156,9 @@ def train_macro_model(df, target_col, preprocessor):
         if auc > best_score:
             best_score = auc
             best_model_pipe = model_to_eval
+            best_y_test = y_test.values
+            best_y_pred = y_pred
+            best_y_prob = y_prob
 
     print(f"\nBest Model AUC: {best_score:.4f}")
 
@@ -166,6 +169,15 @@ def train_macro_model(df, target_col, preprocessor):
 
     model_path = 'ml_pipeline/macro_risk_model.joblib'
     joblib.dump(best_model_pipe, model_path)
+
+    # Save evaluation artifacts for ML Transparency visualizations
+    eval_path = 'ml_pipeline/macro_eval_results.joblib'
+    joblib.dump({
+        'y_test': best_y_test,
+        'y_pred': best_y_pred,
+        'y_prob': best_y_prob,
+    }, eval_path)
+    print(f"Evaluation artifacts saved to {eval_path}")
 
     print(f"\nModel successfully saved to {model_path}")
 

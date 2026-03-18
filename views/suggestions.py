@@ -22,6 +22,10 @@ def render_suggestions():
     with st.spinner("Calculating Risk Metrics & Fetching Metadata..."):
         prices_df = fetch_historical_data(tickers, period='1y')
         current_prices = fetch_current_prices(tickers)
+
+        if prices_df.empty:
+            st.warning("Could not fetch historical price data. Please check your tickers and try again.")
+            return
         
         weights = {}
         total_value = sum(qty * current_prices.get(t, 0) for t, qty in holdings.items())
@@ -222,7 +226,7 @@ def render_suggestions():
     metrics_data = {'volatility': volatility, 'beta': beta, 'hhi': hhi, 'risk_score': risk_score}
     from utils.ai_advisor import generate_portfolio_advice
     
-    if st.button("Generate Actionable Swap In/Out Recommendations (Claude)"):
+    if st.button("Generate Actionable Swap In/Out Recommendations"):
         with st.spinner("Claude is analyzing your structural gaps..."):
             advice = generate_portfolio_advice(
                 portfolio_data=portfolio_data,
@@ -232,3 +236,74 @@ def render_suggestions():
                 eli10_mode=st.session_state.get('eli10_mode', False)
             )
             st.info(f"**Structural Gap Analysis:**\n\n{advice}")
+
+    # ── AI AUTOPILOT — Orchestrated Multi-Step LLM Chain ──────────────────
+    st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
+    st.markdown("### AI Autopilot")
+    st.markdown(
+        "<p style='color:#666; font-size:0.9rem;'>"
+        "A multi-step AI decision chain: Claude proposes 3 trades → Python simulates each → "
+        "Claude reviews all results and gives a final recommendation.</p>",
+        unsafe_allow_html=True,
+    )
+
+    if st.button("Run AI Autopilot"):
+        from utils.ai_advisor import generate_autopilot_recommendations
+
+        autopilot_metrics = {
+            'volatility': volatility, 'beta': beta, 'hhi': hhi,
+            'risk_score': risk_score, 'sharpe': sharpe, 'max_drawdown': max_dd,
+        }
+
+        with st.status("Running AI Autopilot — multi-step decision chain...", expanded=True) as status:
+            st.write("**Step 1:** Claude is proposing 3 trade options...")
+            st.write("**Step 2:** Simulating each trade with what-if analysis...")
+            st.write("**Step 3:** Claude is synthesising a final recommendation...")
+
+            result = generate_autopilot_recommendations(
+                holdings=holdings,
+                prices=current_prices,
+                risk_metrics=autopilot_metrics,
+                profile=profile,
+            )
+            status.update(label="AI Autopilot complete", state="complete", expanded=True)
+
+        if "error" in result:
+            st.error(result["error"])
+        else:
+            # ── Before / After Comparison Table ──────────────────────────
+            st.markdown("#### Before vs After Comparison")
+            current = result["current_risk"]
+            rows = [
+                {
+                    "Metric": "Volatility (%)",
+                    "Current": current.get("volatility_pct", "N/A"),
+                },
+                {
+                    "Metric": "Sharpe Ratio",
+                    "Current": current.get("sharpe_ratio", "N/A"),
+                },
+                {
+                    "Metric": "Max Drawdown (%)",
+                    "Current": current.get("max_drawdown_pct", "N/A"),
+                },
+            ]
+            for sim in result["simulations"]:
+                label = sim["proposal_label"]
+                rows[0][label] = sim.get("new_volatility_pct", "N/A")
+                rows[1][label] = sim.get("new_sharpe_ratio", "N/A")
+                rows[2][label] = sim.get("new_max_drawdown_pct", "N/A")
+
+            comparison_df = pd.DataFrame(rows)
+            st.dataframe(comparison_df, use_container_width=True, hide_index=True)
+
+            # Trade descriptions
+            for sim in result["simulations"]:
+                st.markdown(
+                    f"**{sim['proposal_label']}:** {sim['trade_description']}  \n"
+                    f"*{sim['rationale']}*"
+                )
+
+            # ── Claude's Final Synthesis ─────────────────────────────────
+            st.markdown("#### Claude's Final Recommendation")
+            st.markdown(result["synthesis"])

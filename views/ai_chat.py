@@ -15,6 +15,9 @@ EXAMPLE_PROMPTS = [
     "What if I remove all my crypto?",
 ]
 
+USER_AVATAR = "👤"
+BOT_AVATAR = "📈"
+
 
 def render_ai_chat():
     st.markdown("<h1>AI Portfolio Chat</h1>", unsafe_allow_html=True)
@@ -54,7 +57,8 @@ def render_ai_chat():
 
     # Display chat history
     for msg in st.session_state.chat_display:
-        with st.chat_message(msg["role"]):
+        _avatar = USER_AVATAR if msg["role"] == "user" else BOT_AVATAR
+        with st.chat_message(msg["role"], avatar=_avatar):
             st.markdown(msg["content"])
             if msg.get("tool_calls"):
                 with st.status("Tools Called", state="complete"):
@@ -77,19 +81,24 @@ def render_ai_chat():
     if prompt_to_process:
         # Display user message
         st.session_state.chat_display.append({"role": "user", "content": prompt_to_process})
-        with st.chat_message("user"):
+        with st.chat_message("user", avatar=USER_AVATAR):
             st.markdown(prompt_to_process)
 
         # Run agentic loop
-        with st.chat_message("assistant"):
-            with st.spinner("Thinking..."):
-                response_text, tool_calls_log = run_chatbot_turn(
-                    user_message=prompt_to_process,
-                    conversation_history=st.session_state.chat_history,
-                    holdings=holdings,
-                    profile=profile,
-                    eli10_mode=eli10_mode,
-                )
+        with st.chat_message("assistant", avatar=BOT_AVATAR):
+            try:
+                with st.spinner("Thinking..."):
+                    response_text, tool_calls_log = run_chatbot_turn(
+                        user_message=prompt_to_process,
+                        conversation_history=st.session_state.chat_history,
+                        holdings=holdings,
+                        profile=profile,
+                        eli10_mode=eli10_mode,
+                    )
+            except Exception as e:
+                response_text = f"Something went wrong while processing your request. Please try again."
+                tool_calls_log = []
+                st.warning(f"Error: {e}")
 
             st.markdown(response_text)
 

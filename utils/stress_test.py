@@ -4,8 +4,9 @@ Uses Claude to generate structured scenario parameters, then applies them
 quantitatively to the portfolio.
 """
 import json
+import time
 from typing import Dict, Any, List
-from utils.ai_advisor import client
+from utils.ai_advisor import client, track_llm_usage
 
 
 def generate_stress_scenario(
@@ -66,12 +67,15 @@ Rules:
 - overall_market_impact_pct should reflect the S&P 500 impact"""
 
     try:
+        _model = "claude-sonnet-4-6"
+        t0 = time.time()
         response = client.messages.create(
-            model="claude-sonnet-4-6",
+            model=_model,
             max_tokens=1500,
             system=system_prompt,
             messages=[{"role": "user", "content": user_prompt}],
         )
+        track_llm_usage(response, _model, time.time() - t0)
 
         raw = response.content[0].text.strip()
         # Strip markdown fences if present

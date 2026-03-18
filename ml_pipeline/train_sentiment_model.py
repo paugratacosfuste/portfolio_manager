@@ -67,6 +67,7 @@ def train_sentiment_model(zip_filename="ml_pipeline/stock_market_sentiment.zip")
 
     print("2. Evaluating Model on Test Set...")
     y_pred = pipe.predict(X_test)
+    y_prob = pipe.predict_proba(X_test)
     acc = accuracy_score(y_test, y_pred)
 
     print(f"\nAccuracy: {acc:.4f}")
@@ -78,6 +79,16 @@ def train_sentiment_model(zip_filename="ml_pipeline/stock_market_sentiment.zip")
     model_path = 'ml_pipeline/sentiment_pipeline.joblib'
     joblib.dump(pipe, model_path)
     print(f"Sentiment Pipeline successfully saved to {model_path}")
+
+    # Save evaluation artifacts for ML Transparency visualizations
+    eval_path = 'ml_pipeline/sentiment_eval_results.joblib'
+    joblib.dump({
+        'y_test': y_test.values,
+        'y_pred': y_pred,
+        'y_prob': y_prob,
+        'classes': pipe.classes_,
+    }, eval_path)
+    print(f"Evaluation artifacts saved to {eval_path}")
 
 if __name__ == "__main__":
     import sys

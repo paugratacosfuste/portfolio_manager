@@ -69,13 +69,23 @@ def render_news():
     # Apply ML Scoring if model loaded
     if pipeline:
         with st.spinner("Scoring news with NLP model..."):
-            # Predict (-1, 0, 1) directly with pipeline
-            predictions = pipeline.predict(df_news['Title'])
-            df_news['ML Sentiment'] = predictions
-            
-            # Map number to readable tag
-            sentiment_map = {1: "🟢 Positive", 0: "⚪ Neutral", -1: "🔴 Negative"}
-            df_news['Sentiment Label'] = df_news['ML Sentiment'].map(sentiment_map)
+            # Use predict_proba for a continuous sentiment score instead of
+            # the hard binary prediction.  The model has classes [-1, 1].
+            probas = pipeline.predict_proba(df_news['Title'])
+            # Continuous score: P(positive) - P(negative), range [-1, +1]
+            pos_idx = list(pipeline.classes_).index(1)
+            neg_idx = list(pipeline.classes_).index(-1)
+            df_news['ML Sentiment'] = probas[:, pos_idx] - probas[:, neg_idx]
+
+            # Map to label using confidence thresholds
+            def _label(score):
+                if score > 0.15:
+                    return "🟢 Positive"
+                elif score < -0.15:
+                    return "🔴 Negative"
+                return "⚪ Neutral"
+
+            df_news['Sentiment Label'] = df_news['ML Sentiment'].apply(_label)
     else:
         df_news['Sentiment Label'] = "N/A"
         

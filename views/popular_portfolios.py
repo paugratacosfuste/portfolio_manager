@@ -250,11 +250,27 @@ def render_popular_portfolios():
             st.info("Curious how your custom portfolio stacks up against the " + selected_name + " structurally?")
 
             if st.button("Run Claude Comparison"):
+                from utils.data_fetcher import fetch_current_prices
+                _prices = fetch_current_prices(list(holdings.keys()))
+                _total = sum(holdings[t] * _prices.get(t, 0) for t in holdings)
+                _weights = {t: (holdings[t] * _prices.get(t, 0)) / _total if _total > 0 else 0 for t in holdings}
                 user_portfolio_data = {
                     "holdings": holdings,
-                    "weights": {k: 1 / len(holdings) for k in holdings.keys()},
+                    "weights": _weights,
                 }
-                user_risk_score = 65
+                from utils.portfolio_metrics import calculate_hhi_index, assess_risk_score, calculate_portfolio_volatility, calculate_portfolio_beta
+                from utils.data_fetcher import fetch_historical_data
+                _hhi = calculate_hhi_index(_weights)
+                _hist = fetch_historical_data(list(holdings.keys()), period="1y")
+                _valid = [t for t in holdings if t in _hist.columns]
+                _vol = calculate_portfolio_volatility(_hist[_valid], _weights) if len(_valid) > 0 and len(_hist) > 50 else 0.15
+                try:
+                    _spy = fetch_historical_data(["SPY"], period="1y")
+                    _mkt = _spy["SPY"] if "SPY" in _spy else _hist.iloc[:, 0]
+                    _beta = calculate_portfolio_beta(_hist[_valid], _mkt, _weights)
+                except Exception:
+                    _beta = 1.0
+                user_risk_score = assess_risk_score(_vol, _hhi, _beta, _total)
 
                 with st.spinner("Claude is analyzing the structural differences..."):
                     analysis = compare_portfolio_with_standard(

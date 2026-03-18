@@ -124,7 +124,8 @@ def fetch_asset_metadata(tickers: List[str]) -> Dict[str, Dict]:
                 "sector": sector,
                 "region": region
             }
-        except:
+        except Exception as e:
+            print(f"Warning: Could not fetch metadata for {ticker}: {e}")
             meta[ticker] = {"asset_class": "Stocks", "sector": "Other", "region": "United States"}
             
     return meta

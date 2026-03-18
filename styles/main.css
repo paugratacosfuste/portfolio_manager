@@ -175,9 +175,64 @@ textarea:focus {
     margin-bottom: 0.75rem !important;
 }
 
-[data-testid="stChatInput"] textarea {
-    border-radius: 12px !important;
+/* Chat input — remove all blue/dark borders */
+[data-testid="stBottom"],
+[data-testid="stBottom"] > div,
+[data-testid="stBottomBlockContainer"],
+[data-testid="stChatInput"],
+[data-testid="stChatInput"] > div,
+[data-testid="stChatInput"] div,
+.stChatInput,
+.stChatInput > div,
+.stBottom > div {
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+    border-color: transparent !important;
+}
+
+[data-testid="stBottom"] {
+    background-color: #F4F6F8 !important;
+}
+
+[data-testid="stChatInput"] {
+    background-color: #FFFFFF !important;
     border: 1px solid #D9D9D9 !important;
+    border-radius: 12px !important;
+}
+
+[data-testid="stChatInput"] textarea,
+[data-testid="stChatInput"] textarea:focus,
+[data-testid="stChatInput"] textarea:active {
+    border: none !important;
+    background-color: #FFFFFF !important;
+    box-shadow: none !important;
+    outline: none !important;
+    resize: none !important;
+}
+
+/* Hide resize grip and any pseudo-elements */
+[data-testid="stChatInput"] textarea::-webkit-resizer {
+    display: none !important;
+}
+
+[data-testid="stChatInput"] *::before,
+[data-testid="stChatInput"] *::after {
+    display: none !important;
+}
+
+[data-testid="stChatInput"] button {
+    background-color: #FFFFFF !important;
+    border: none !important;
+    color: #0B1F3A !important;
+    -webkit-text-fill-color: #0B1F3A !important;
+}
+
+*:focus-within [data-testid="stChatInput"],
+[data-testid="stChatInput"]:focus-within {
+    border-color: #D9D9D9 !important;
+    box-shadow: none !important;
+    outline: none !important;
 }
 
 /* Status expander for tool transparency */

@@ -3,12 +3,13 @@ Agentic chatbot engine with multi-turn tool use.
 Uses Claude to autonomously decide which tools to call, executes them,
 and feeds results back until Claude produces a final text response.
 """
+import time
 from typing import Dict, List, Tuple, Any
-from utils.ai_advisor import client
+from utils.ai_advisor import client, track_llm_usage
 from utils.chatbot_tools import CHATBOT_TOOLS, execute_tool
 
 MODEL = "claude-sonnet-4-6"
-MAX_ITERATIONS = 5
+MAX_ITERATIONS = 8
 
 
 def _build_system_prompt(profile: Dict[str, Any], eli10_mode: bool) -> str:
@@ -61,13 +62,15 @@ def run_chatbot_turn(
 
     for _ in range(MAX_ITERATIONS):
         try:
+            t0 = time.time()
             response = client.messages.create(
                 model=MODEL,
-                max_tokens=1500,
+                max_tokens=4096,
                 system=system_prompt,
                 tools=CHATBOT_TOOLS,
                 messages=conversation_history,
             )
+            track_llm_usage(response, MODEL, time.time() - t0)
         except Exception as e:
             return f"Error communicating with Claude: {e}", tool_calls_log
 
@@ -102,18 +105,26 @@ def run_chatbot_turn(
             # Feed tool results back to Claude
             conversation_history.append({"role": "user", "content": tool_results})
 
-        elif response.stop_reason == "end_turn":
-            # Extract the final text response
+        else:
+            # end_turn, max_tokens, or any other stop reason → extract text and return
             final_text = ""
             for block in assistant_content:
                 if hasattr(block, "text"):
                     final_text += block.text
-            return final_text, tool_calls_log
+            if final_text:
+                return final_text, tool_calls_log
+            # If no text was produced (unlikely), break to the fallback below
+            break
 
-    # Safety: if we hit max iterations, return whatever we have
+    # Safety: if we hit max iterations, extract text from the last assistant message
     final_text = "I've gathered a lot of data but hit my analysis limit. Here's what I found so far."
-    for block in conversation_history[-1].get("content", []):
-        if hasattr(block, "text"):
-            final_text = block.text
+    # Walk backwards to find the last assistant message with text
+    for msg in reversed(conversation_history):
+        if msg.get("role") == "assistant":
+            content = msg.get("content", [])
+            if isinstance(content, list):
+                for block in content:
+                    if hasattr(block, "text") and block.text:
+                        return block.text, tool_calls_log
             break
     return final_text, tool_calls_log
