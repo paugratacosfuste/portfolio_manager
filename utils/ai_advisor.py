@@ -22,6 +22,7 @@ except Exception as e:
 LLM_PRICING = {
     "claude-haiku-4-5-20251001": {"input": 0.80, "output": 4.00},
     "claude-sonnet-4-6": {"input": 3.00, "output": 15.00},
+    "claude-opus-4-7": {"input": 15.00, "output": 75.00},
 }
 
 # Persistent store — set once from app.py via set_llm_stats_store() using
@@ -38,6 +39,19 @@ def get_llm_stats() -> dict:
     if _llm_stats is None:
         return {"total_calls": 0, "input_tokens": 0, "output_tokens": 0, "total_cost": 0.0, "total_latency": 0.0}
     return dict(_llm_stats)
+
+def _cached(system_text: str) -> list[dict]:
+    """Wrap a system prompt string with an ephemeral cache_control block.
+
+    Cuts token cost on repeated LLM calls that share the same system
+    prompt within a ~5-minute window (Anthropic prompt-cache TTL).
+    """
+    return [{
+        "type": "text",
+        "text": system_text,
+        "cache_control": {"type": "ephemeral"},
+    }]
+
 
 def track_llm_usage(response, model_name: str, latency: float):
     """Accumulate token / cost / latency stats from an Anthropic response."""
@@ -178,7 +192,7 @@ Use markdown formatting (bullet points, bold text) to make your points clear and
         response = client.messages.create(
             model=_model,
             max_tokens=1000,
-            system=system_prompt,
+            system=_cached(system_prompt),
             messages=[
                 {"role": "user", "content": prompt}
             ]
@@ -223,7 +237,7 @@ Provide a brief, synthesized summary of what this means for my portfolio.
         response = client.messages.create(
             model=_model,
             max_tokens=500,
-            system=system_prompt,
+            system=_cached(system_prompt),
             messages=[
                 {"role": "user", "content": prompt}
             ]
@@ -272,7 +286,7 @@ Provide a brief compare-and-contrast analysis. What are the trade-offs I'm makin
         response = client.messages.create(
             model=_model,
             max_tokens=600,
-            system=system_prompt,
+            system=_cached(system_prompt),
             messages=[
                 {"role": "user", "content": prompt}
             ]
@@ -391,9 +405,11 @@ Rules:
         resp1 = client.messages.create(
             model=_model,
             max_tokens=800,
-            system="You are a quantitative portfolio strategist. Respond ONLY with valid JSON, no markdown fences."
-                   if not eli10_mode else
-                   "You are a friendly financial helper explaining things to a 10-year-old. Respond ONLY with valid JSON, no markdown fences. Use simple rationale text a child could understand.",
+            system=_cached(
+                "You are a quantitative portfolio strategist. Respond ONLY with valid JSON, no markdown fences."
+                if not eli10_mode else
+                "You are a friendly financial helper explaining things to a 10-year-old. Respond ONLY with valid JSON, no markdown fences. Use simple rationale text a child could understand."
+            ),
             messages=[{"role": "user", "content": step1_prompt}],
         )
         track_llm_usage(resp1, _model, time.time() - t0)
@@ -471,9 +487,11 @@ Use markdown formatting. Be concise but thorough."""
         resp3 = client.messages.create(
             model=_model,
             max_tokens=1000,
-            system="You are a precise, data-driven financial advisor. Use markdown formatting."
-                   if not eli10_mode else
-                   "You are a friendly teacher explaining money advice to a 10-year-old. Use simple words, short sentences, and fun comparisons. Use markdown formatting.",
+            system=_cached(
+                "You are a precise, data-driven financial advisor. Use markdown formatting."
+                if not eli10_mode else
+                "You are a friendly teacher explaining money advice to a 10-year-old. Use simple words, short sentences, and fun comparisons. Use markdown formatting."
+            ),
             messages=[{"role": "user", "content": step3_prompt}],
         )
         track_llm_usage(resp3, _model, time.time() - t0)

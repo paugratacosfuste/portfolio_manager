@@ -1,0 +1,31 @@
+ts,persona,headline,source_url,expected_tickers,notes
+2018-03-01T14:00:00+00:00,trump,Trump imposes 25% steel and 10% aluminum tariffs,https://www.reuters.com/article/us-trump-steel/,X SLX,escalation
+2018-06-15T13:00:00+00:00,trump,Trump announces 25% tariff on $50B of Chinese goods,https://www.reuters.com/article/us-usa-trade-china/,FXI SPY,China retaliation
+2018-07-06T04:00:00+00:00,trump,US and China activate $34B tariffs on each other,https://www.reuters.com/article/us-trade-tariffs/,FXI SPY,full trade war begins
+2018-08-01T20:00:00+00:00,trump,Trump considers raising China tariffs to 25%,https://www.reuters.com/article/us-usa-trade-china-tariffs/,FXI SPY,escalation signal
+2018-09-17T22:00:00+00:00,trump,Trump imposes 10% tariff on additional $200B of Chinese imports,https://www.reuters.com/article/usa-trade/,FXI SPY,major escalation
+2018-12-01T22:00:00+00:00,trump,Trump and Xi agree to trade war truce at G20,https://www.reuters.com/article/g20-argentina/,SPY FXI,dovish
+2019-05-05T20:00:00+00:00,trump,Trump threatens to hike tariffs on China to 25%,https://www.reuters.com/article/usa-trade-china/,SPY FXI,market negative
+2019-08-01T18:00:00+00:00,trump,Trump announces 10% tariff on final $300B of Chinese imports,https://www.reuters.com/article/trade/,SPY FXI,major escalation
+2019-08-23T21:00:00+00:00,trump,Trump orders US companies to seek alternatives to China,https://www.reuters.com/article/trade-china/,SPY FXI,aggressive rhetoric
+2019-10-11T19:00:00+00:00,trump,Trump says US has reached phase-one deal with China,https://www.reuters.com/article/trade/,SPY FXI,dovish truce
+2020-01-15T17:00:00+00:00,trump,Trump signs US-China phase-one trade deal,https://www.reuters.com/article/trade/,SPY FXI,dovish signed
+2020-03-11T22:00:00+00:00,trump,Trump suspends travel from Europe over coronavirus,https://www.whitehouse.gov/,SPY,COVID panic
+2020-08-06T21:00:00+00:00,trump,Trump bans US transactions with TikTok parent ByteDance,https://www.reuters.com/article/tiktok/,BABA FXI,tech confrontation
+2021-01-06T20:00:00+00:00,trump,Trump backers storm US Capitol,https://www.reuters.com/article/capitol-riot/,SPY DXY,risk-off
+2022-11-15T23:00:00+00:00,trump,Trump launches 2024 presidential campaign,https://www.reuters.com/article/trump-announce/,DJT SPY,political
+2024-02-04T20:00:00+00:00,trump,Trump says he would impose 60% tariffs on China,https://www.reuters.com/world/us/,SPY FXI,campaign rhetoric
+2024-11-06T06:00:00+00:00,trump,Trump wins US presidential election,https://www.reuters.com/world/us/,SPY DXY BTC-USD,post-victory rally
+2024-11-25T22:00:00+00:00,trump,Trump threatens 25% tariffs on Canada and Mexico,https://truthsocial.com/@realDonaldTrump,EWW EWC,immediate
+2025-01-20T17:00:00+00:00,trump,Trump signs flurry of executive orders on day one,https://www.whitehouse.gov/,SPY DXY,uncertainty
+2025-02-01T21:00:00+00:00,trump,Trump imposes 25% tariff on Canada and Mexico 10% on China,https://www.reuters.com/,EWW EWC FXI,major
+2025-02-13T21:00:00+00:00,trump,Trump signs reciprocal tariff plan,https://www.reuters.com/,SPY,broad negative
+2025-03-04T05:00:00+00:00,trump,Trump 25% Canada Mexico tariffs take effect,https://www.reuters.com/,EWW EWC,activated
+2025-03-26T20:00:00+00:00,trump,Trump announces 25% tariff on all imported cars,https://www.reuters.com/,TSLA F GM,auto sector hit
+2025-04-02T20:00:00+00:00,trump,Trump announces Liberation Day reciprocal tariffs,https://www.reuters.com/,SPY DXY,max escalation
+2025-04-09T17:00:00+00:00,trump,Trump pauses reciprocal tariffs for 90 days,https://truthsocial.com/@realDonaldTrump,SPY,relief rally
+2025-05-12T12:00:00+00:00,trump,Trump and China agree to slash tariffs temporarily,https://www.reuters.com/,FXI SPY,dovish truce
+2025-07-15T14:00:00+00:00,trump,Trump floats Fed Chair Powell replacement,https://truthsocial.com/@realDonaldTrump,TLT DXY,fed independence
+2025-09-10T13:00:00+00:00,trump,Trump announces 100% tariff on semiconductor imports,https://www.reuters.com/,SMH,chip sector hit
+2025-11-02T19:00:00+00:00,trump,Trump renews Greenland and Panama Canal claims,https://truthsocial.com/@realDonaldTrump,SPY,rhetorical
+2026-01-22T16:00:00+00:00,trump,Trump proposes sovereign wealth fund funded by tariffs,https://www.whitehouse.gov/,SPY DXY,policy novel

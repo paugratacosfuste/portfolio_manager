@@ -81,7 +81,11 @@ Rules:
         response = client.messages.create(
             model=_model,
             max_tokens=1500,
-            system=system_prompt,
+            system=[{
+                "type": "text",
+                "text": system_prompt,
+                "cache_control": {"type": "ephemeral"},
+            }],
             messages=[{"role": "user", "content": user_prompt}],
         )
         track_llm_usage(response, _model, time.time() - t0)

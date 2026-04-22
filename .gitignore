@@ -24,6 +24,9 @@ __pycache__/
 *.pkl
 *.sqlite3
 
+# Eval run outputs (ephemeral)
+evals/results/
+
 .claude/
 .venv_new/
 .venv_test/
@@ -38,4 +41,4 @@ Assignment2_Report_PauGratacosFuste.docx
 action_plan_chatbot.md
 Assignment2_Report_PauGratacosFuste.docx.pdf
 action_planv3.md
-CLAUDE.md
+CLAUDE.md.coverage

@@ -10,16 +10,16 @@ def test_get_current_prices(mock_download):
     mock_download.return_value = mock_df
     
     prices = fetch_current_prices(['AAPL'])
-    
+
     assert 'AAPL' in prices
     assert prices['AAPL'] == 150.0
-    mock_download.assert_called_with(['AAPL'], period="5d", progress=False)
+    mock_download.assert_called_with(['AAPL'], period="5d", progress=False, auto_adjust=True)
 
 @patch('utils.data_fetcher.yf.download')
 def test_get_historical_data(mock_download):
-    # Mock download returning a dataframe with 'Adj Close'
+    # yfinance with auto_adjust=True returns 'Close' (not 'Adj Close')
     mock_df = pd.DataFrame({
-        'Adj Close': [100.0, 101.0, 102.0]
+        'Close': [100.0, 101.0, 102.0]
     })
     # yfinance multi-index for multiple tickers is a bit complex to mock linearly. 
     # For a single ticker it returns simply the columns.

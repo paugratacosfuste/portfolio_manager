@@ -10,6 +10,18 @@ from utils.chatbot_tools import CHATBOT_TOOLS, execute_tool
 
 MODEL = "claude-sonnet-4-6"
 MAX_ITERATIONS = 8
+MAX_TOKENS = 1000
+
+
+_CORE_RULES = (
+    "Rules:\n"
+    "- Always call the available tools to get real data before answering. Never invent numbers, tickers, or dates.\n"
+    "- If a tool returns an error, surface it plainly and suggest what to try next.\n"
+    "- Lead with the answer. Skip preambles like 'Great question' or 'I'd be happy to help'.\n"
+    "- Cite the exact numbers the tools returned (prices, weights, metrics). Don't paraphrase numerics vaguely.\n"
+    "- Match the user's scope: one-liner questions get a one-liner back; open-ended questions get deeper analysis.\n"
+    "- Never recommend specific trades as investment advice. This is an educational prototype.\n"
+)
 
 
 def _build_system_prompt(profile: Dict[str, Any], eli10_mode: bool) -> str:
@@ -18,22 +30,18 @@ def _build_system_prompt(profile: Dict[str, Any], eli10_mode: bool) -> str:
     name = profile.get("name", "Investor")
 
     if eli10_mode:
-        return (
-            f"You are a super-friendly portfolio assistant talking to {name}. "
-            f"Explain everything as if talking to a 10-year-old. Use simple words, "
-            f"fun analogies (pizza slices, piggy banks, roller coasters), and keep it encouraging. "
-            f"The user's risk tolerance is {risk} and their horizon is {horizon}. "
-            f"You have tools to look up real portfolio data, prices, news, and risk metrics. "
-            f"Always use the tools to get real data before answering - never guess numbers."
+        persona = (
+            f"You are a super-friendly portfolio assistant talking to {name} (risk: {risk}, horizon: {horizon}). "
+            f"Explain with simple words and fun analogies (pizza slices, piggy banks, roller coasters). Stay encouraging.\n\n"
         )
     else:
-        return (
-            f"You are a professional AI portfolio assistant for {name}. "
-            f"Their risk tolerance is {risk} and investment horizon is {horizon}. "
-            f"Provide data-driven, precise analysis using your available tools. "
-            f"Always call tools to retrieve real data before answering - never fabricate numbers. "
-            f"Use markdown formatting for clarity. Be concise but thorough."
+        persona = (
+            f"You are a professional AI portfolio assistant for {name} (risk: {risk}, horizon: {horizon}). "
+            f"Be data-driven and precise. Use markdown where it genuinely aids clarity (tables for comparisons, "
+            f"bold for key numbers) — otherwise prefer plain prose.\n\n"
         )
+
+    return persona + _CORE_RULES
 
 
 def run_chatbot_turn(
@@ -65,8 +73,12 @@ def run_chatbot_turn(
             t0 = time.time()
             response = client.messages.create(
                 model=MODEL,
-                max_tokens=4096,
-                system=system_prompt,
+                max_tokens=MAX_TOKENS,
+                system=[{
+                    "type": "text",
+                    "text": system_prompt,
+                    "cache_control": {"type": "ephemeral"},
+                }],
                 tools=CHATBOT_TOOLS,
                 messages=conversation_history,
             )

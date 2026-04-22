@@ -1,0 +1,29 @@
+ts,persona,headline,source_url,expected_tickers,notes
+2020-05-01T14:00:00+00:00,musk,Musk tweets Tesla stock price is too high,https://twitter.com/elonmusk/,TSLA,tweet moved market
+2020-12-20T17:00:00+00:00,musk,Musk tweets Bitcoin,https://twitter.com/elonmusk/,BTC-USD,single-word post
+2021-01-29T16:00:00+00:00,musk,Musk adds bitcoin hashtag to Twitter bio,https://twitter.com/elonmusk/,BTC-USD,BTC rally
+2021-02-04T18:00:00+00:00,musk,Musk tweets Dogecoin is the people's crypto,https://twitter.com/elonmusk/,DOGE-USD,DOGE +50%
+2021-02-08T14:30:00+00:00,musk,Tesla reveals $1.5B bitcoin purchase in 10-K,https://www.sec.gov/Archives/edgar/data/,TSLA BTC-USD,major institutional buy
+2021-05-12T22:00:00+00:00,musk,Tesla suspends bitcoin payments over energy concerns,https://twitter.com/elonmusk/,BTC-USD,BTC crash
+2021-06-04T12:00:00+00:00,musk,Musk tweets broken-heart Bitcoin emoji,https://twitter.com/elonmusk/,BTC-USD,bearish
+2021-07-21T16:00:00+00:00,musk,Musk says SpaceX owns bitcoin,https://www.theb-word.com/,BTC-USD,bullish
+2021-11-06T14:00:00+00:00,musk,Musk polls Twitter on selling 10% of Tesla stock,https://twitter.com/elonmusk/,TSLA,uncertainty
+2022-01-25T20:00:00+00:00,musk,Tesla reports strong Q4 robotaxi timeline slipping,https://ir.tesla.com/,TSLA,pressure
+2022-04-14T12:00:00+00:00,musk,Musk offers to buy Twitter for $43B,https://www.sec.gov/Archives/,TSLA TWTR,major
+2022-10-27T20:00:00+00:00,musk,Musk completes Twitter takeover,https://twitter.com/elonmusk/,TSLA,distraction
+2023-04-11T18:00:00+00:00,musk,Musk launches xAI to challenge OpenAI,https://x.ai/,TSLA NVDA,AI signal
+2023-07-19T14:00:00+00:00,musk,Musk tweets AI will eliminate need for jobs,https://twitter.com/elonmusk/,TSLA,AI enthusiasm
+2024-04-05T16:00:00+00:00,musk,Tesla abandons low-cost Model 2 per Reuters,https://www.reuters.com/business/autos-transportation/,TSLA,bearish
+2024-04-23T22:00:00+00:00,musk,Musk reiterates robotaxi August 8 unveil,https://twitter.com/elonmusk/,TSLA,hype
+2024-07-15T14:00:00+00:00,musk,Musk endorses Trump for president,https://twitter.com/elonmusk/,TSLA DJT,political pivot
+2024-10-10T23:00:00+00:00,musk,Tesla unveils Cybercab robotaxi at We Robot event,https://www.tesla.com/,TSLA,underwhelm sell-off
+2024-11-06T06:30:00+00:00,musk,Musk joins Trump stage after election victory,https://www.reuters.com/,TSLA BTC-USD,political win
+2024-12-10T14:00:00+00:00,musk,Musk named co-head of DOGE efficiency commission,https://www.reuters.com/,TSLA GOVT,political capital
+2025-01-20T18:00:00+00:00,musk,Musk performs salute at Trump inauguration,https://www.reuters.com/,TSLA,controversy
+2025-03-10T15:00:00+00:00,musk,Tesla stock tumbles 15% on DOGE backlash,https://www.reuters.com/business/autos-transportation/,TSLA,brand damage
+2025-05-28T14:00:00+00:00,musk,Musk exits White House DOGE advisory role,https://www.reuters.com/,TSLA,relief
+2025-06-05T18:00:00+00:00,musk,Musk attacks Trump on Truth Social over spending bill,https://x.com/elonmusk/,TSLA BTC-USD,feud begins
+2025-07-14T12:00:00+00:00,musk,Musk announces America Party launch,https://x.com/elonmusk/,TSLA,political
+2025-08-26T16:00:00+00:00,musk,Musk says Grok-4 beats GPT-5 on reasoning,https://x.com/elonmusk/,TSLA NVDA,AI hype
+2025-11-17T14:00:00+00:00,musk,Tesla approves Musk's $1T pay package,https://ir.tesla.com/,TSLA,governance
+2026-02-05T20:00:00+00:00,musk,Musk teases Cybertruck global expansion,https://x.com/elonmusk/,TSLA,positive

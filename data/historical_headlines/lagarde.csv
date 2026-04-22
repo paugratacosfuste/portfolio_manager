@@ -1,0 +1,28 @@
+ts,persona,headline,source_url,expected_tickers,notes
+2019-11-01T10:00:00+00:00,lagarde,Lagarde takes over as ECB President,https://www.ecb.europa.eu/,EURUSD=X FEZ,transition
+2020-03-12T13:00:00+00:00,lagarde,Lagarde says ECB not here to close spreads market reaction,https://www.ecb.europa.eu/,BTP=F EURUSD=X,gaffe
+2020-03-18T23:00:00+00:00,lagarde,ECB launches 750B euro pandemic emergency PEPP,https://www.ecb.europa.eu/,EURUSD=X FEZ,massive dovish
+2021-12-16T13:45:00+00:00,lagarde,ECB to end PEPP in March keeps rates at record low,https://www.ecb.europa.eu/,EURUSD=X,mild hawkish
+2022-02-03T13:45:00+00:00,lagarde,Lagarde refuses to rule out 2022 rate hike hawkish pivot,https://www.ecb.europa.eu/,EURUSD=X FEZ,hawkish
+2022-06-09T12:45:00+00:00,lagarde,ECB signals July rate lift-off first in 11 years,https://www.ecb.europa.eu/,EURUSD=X,hawkish
+2022-07-21T12:15:00+00:00,lagarde,ECB hikes 50bp bigger than expected launches TPI,https://www.ecb.europa.eu/,EURUSD=X,hawkish surprise
+2022-09-08T12:15:00+00:00,lagarde,ECB hikes rates 75bp unprecedented move,https://www.ecb.europa.eu/,EURUSD=X,hawkish
+2022-10-27T12:15:00+00:00,lagarde,ECB hikes 75bp softens forward guidance,https://www.ecb.europa.eu/,EURUSD=X,dovish tilt
+2023-02-02T13:15:00+00:00,lagarde,ECB hikes 50bp pledges another 50bp in March,https://www.ecb.europa.eu/,EURUSD=X,hawkish commit
+2023-03-16T13:15:00+00:00,lagarde,ECB hikes 50bp amid banking stress,https://www.ecb.europa.eu/,EURUSD=X,gutsy hike
+2023-06-15T12:15:00+00:00,lagarde,ECB hikes 25bp signals more to come,https://www.ecb.europa.eu/,EURUSD=X,hawkish
+2023-09-14T12:15:00+00:00,lagarde,ECB hikes 25bp signals rates at peak,https://www.ecb.europa.eu/,EURUSD=X,dovish tilt
+2023-10-26T12:15:00+00:00,lagarde,ECB holds rates first pause in hiking cycle,https://www.ecb.europa.eu/,EURUSD=X,pause
+2023-12-14T13:15:00+00:00,lagarde,ECB holds rates pushes back on cuts,https://www.ecb.europa.eu/,EURUSD=X,hawkish
+2024-03-07T13:15:00+00:00,lagarde,Lagarde signals June rate cut start,https://www.ecb.europa.eu/,EURUSD=X,dovish pivot
+2024-06-06T12:15:00+00:00,lagarde,ECB cuts rates first time in five years,https://www.ecb.europa.eu/,EURUSD=X,cut
+2024-09-12T12:15:00+00:00,lagarde,ECB cuts 25bp confirms disinflation,https://www.ecb.europa.eu/,EURUSD=X,cut
+2024-10-17T12:15:00+00:00,lagarde,ECB cuts rates back-to-back first time in 13 years,https://www.ecb.europa.eu/,EURUSD=X,dovish
+2024-12-12T13:15:00+00:00,lagarde,ECB cuts 25bp drops restrictive language,https://www.ecb.europa.eu/,EURUSD=X,dovish
+2025-01-30T13:15:00+00:00,lagarde,ECB cuts quarter-point fourth time signals more,https://www.ecb.europa.eu/,EURUSD=X,dovish
+2025-03-06T13:15:00+00:00,lagarde,ECB cuts 25bp hints pause possible,https://www.ecb.europa.eu/,EURUSD=X,pause signal
+2025-06-05T12:15:00+00:00,lagarde,ECB cuts to 2.0 terminal rate reached,https://www.ecb.europa.eu/,EURUSD=X,terminal
+2025-07-24T12:15:00+00:00,lagarde,ECB holds cites tariff uncertainty,https://www.ecb.europa.eu/,EURUSD=X,pause
+2025-09-11T12:15:00+00:00,lagarde,ECB holds rates Lagarde cites resilience,https://www.ecb.europa.eu/,EURUSD=X,hold
+2025-12-18T13:15:00+00:00,lagarde,ECB holds rates Lagarde notes downside risks,https://www.ecb.europa.eu/,EURUSD=X,cautious
+2026-02-05T13:15:00+00:00,lagarde,Lagarde says ECB ready to act if US tariffs bite,https://www.ecb.europa.eu/,EURUSD=X FEZ,dovish tilt

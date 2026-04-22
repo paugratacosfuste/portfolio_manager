@@ -1,0 +1,375 @@
+# Geopolitical personas tracked by the Political Alpha agent.
+# Tier 1 = direct immediate market impact; Tier 2 = sector/region impact;
+# Tier 3 = contextual / international orgs.
+# Keep this file human-editable; core/personas.py validates on load.
+
+# ─── Tier 1: direct, immediate market impact ────────────────────────────────
+
+- id: trump
+  name: Donald Trump
+  role: US President
+  tier: 1
+  watched_sources: [truth_social, gdelt, rss]
+  keywords: [Trump, "President Trump", "Donald Trump"]
+  high_salience_terms: [tariff, "trade war", sanctions, China, crypto, bitcoin, "executive order", Fed]
+  primary_asset_impacts:
+    - {asset: SPY, direction_on_positive: LONG}
+    - {asset: DXY, direction_on_positive: LONG}
+    - {asset: BTC-USD, direction_on_positive: LONG}
+  historical_reaction_horizon_hours: 24
+
+- id: musk
+  name: Elon Musk
+  role: CEO Tesla / xAI / SpaceX
+  tier: 1
+  watched_sources: [gdelt, rss]
+  keywords: [Musk, "Elon Musk"]
+  high_salience_terms: [bitcoin, dogecoin, Tesla, crypto, AI, robotaxi, xAI]
+  primary_asset_impacts:
+    - {asset: TSLA, direction_on_positive: LONG}
+    - {asset: BTC-USD, direction_on_positive: LONG}
+    - {asset: DOGE-USD, direction_on_positive: LONG}
+  historical_reaction_horizon_hours: 12
+
+- id: powell
+  name: Jerome Powell
+  role: Federal Reserve Chair
+  tier: 1
+  watched_sources: [gdelt, rss]
+  keywords: [Powell, "Fed Chair", "Federal Reserve Chair"]
+  high_salience_terms: [hawkish, dovish, "rate cut", "rate hike", FOMC, inflation, "Jackson Hole"]
+  primary_asset_impacts:
+    - {asset: TLT, direction_on_positive: SHORT}
+    - {asset: SPY, direction_on_positive: LONG}
+    - {asset: DXY, direction_on_positive: LONG}
+  historical_reaction_horizon_hours: 4
+
+- id: bessent
+  name: Scott Bessent
+  role: US Treasury Secretary
+  tier: 1
+  watched_sources: [gdelt, rss]
+  keywords: [Bessent, "Treasury Secretary"]
+  high_salience_terms: [yield, Treasury, debt, tariff, dollar]
+  primary_asset_impacts:
+    - {asset: TLT, direction_on_positive: LONG}
+    - {asset: DXY, direction_on_positive: LONG}
+  historical_reaction_horizon_hours: 8
+
+- id: lagarde
+  name: Christine Lagarde
+  role: ECB President
+  tier: 1
+  watched_sources: [gdelt, rss]
+  keywords: [Lagarde, "ECB President"]
+  high_salience_terms: [hawkish, dovish, eurozone, inflation, "rate decision"]
+  primary_asset_impacts:
+    - {asset: EURUSD=X, direction_on_positive: LONG}
+    - {asset: FEZ, direction_on_positive: LONG}
+  historical_reaction_horizon_hours: 4
+
+- id: von_der_leyen
+  name: Ursula von der Leyen
+  role: European Commission President
+  tier: 1
+  watched_sources: [gdelt, rss]
+  keywords: ["von der Leyen", "von Der Leyen", "Commission President"]
+  high_salience_terms: [tariff, sanctions, "digital markets", climate, Ukraine]
+  primary_asset_impacts:
+    - {asset: FEZ, direction_on_positive: LONG}
+  historical_reaction_horizon_hours: 12
+
+- id: bailey
+  name: Andrew Bailey
+  role: Bank of England Governor
+  tier: 1
+  watched_sources: [gdelt, rss]
+  keywords: [Bailey, "BOE Governor", "Bank of England"]
+  high_salience_terms: [hawkish, dovish, "rate decision", inflation, sterling]
+  primary_asset_impacts:
+    - {asset: GBPUSD=X, direction_on_positive: LONG}
+    - {asset: EWU, direction_on_positive: LONG}
+  historical_reaction_horizon_hours: 4
+
+- id: ueda
+  name: Kazuo Ueda
+  role: Bank of Japan Governor
+  tier: 1
+  watched_sources: [gdelt, rss]
+  keywords: [Ueda, "BOJ Governor", "Bank of Japan"]
+  high_salience_terms: ["yield curve", YCC, intervention, yen, hawkish, dovish]
+  primary_asset_impacts:
+    - {asset: JPY=X, direction_on_positive: LONG}
+    - {asset: EWJ, direction_on_positive: LONG}
+  historical_reaction_horizon_hours: 6
+
+- id: xi
+  name: Xi Jinping
+  role: Paramount Leader China
+  tier: 1
+  watched_sources: [gdelt, rss]
+  keywords: [Xi, "Xi Jinping", "Chinese President"]
+  high_salience_terms: [Taiwan, tariff, tech, stimulus, "common prosperity", semiconductor]
+  primary_asset_impacts:
+    - {asset: FXI, direction_on_positive: LONG}
+    - {asset: KWEB, direction_on_positive: LONG}
+  historical_reaction_horizon_hours: 24
+
+- id: pan
+  name: Pan Gongsheng
+  role: PBOC Governor
+  tier: 1
+  watched_sources: [gdelt, rss]
+  keywords: [Pan Gongsheng, "PBOC Governor", "People's Bank of China"]
+  high_salience_terms: [RRR, stimulus, yuan, renminbi, "rate cut"]
+  primary_asset_impacts:
+    - {asset: FXI, direction_on_positive: LONG}
+    - {asset: CNY=X, direction_on_positive: SHORT}
+  historical_reaction_horizon_hours: 8
+
+# ─── Tier 2: meaningful sector / region impact ──────────────────────────────
+
+- id: putin
+  name: Vladimir Putin
+  role: President of Russia
+  tier: 2
+  watched_sources: [gdelt, rss]
+  keywords: [Putin, "Russian President"]
+  high_salience_terms: [Ukraine, nuclear, sanctions, oil, gas, NATO]
+  primary_asset_impacts:
+    - {asset: BZ=F, direction_on_positive: LONG}
+    - {asset: GLD, direction_on_positive: LONG}
+  historical_reaction_horizon_hours: 24
+
+- id: nabiullina
+  name: Elvira Nabiullina
+  role: Central Bank of Russia Governor
+  tier: 2
+  watched_sources: [gdelt, rss]
+  keywords: [Nabiullina]
+  high_salience_terms: ["rate decision", ruble, inflation]
+  primary_asset_impacts:
+    - {asset: RUB=X, direction_on_positive: LONG}
+  historical_reaction_horizon_hours: 12
+
+- id: netanyahu
+  name: Benjamin Netanyahu
+  role: Prime Minister of Israel
+  tier: 2
+  watched_sources: [gdelt, rss]
+  keywords: [Netanyahu, "Israeli PM"]
+  high_salience_terms: [Gaza, Iran, Hezbollah, ceasefire, strike]
+  primary_asset_impacts:
+    - {asset: BZ=F, direction_on_positive: LONG}
+    - {asset: GLD, direction_on_positive: LONG}
+  historical_reaction_horizon_hours: 24
+
+- id: mbs
+  name: Mohammed bin Salman
+  role: Crown Prince of Saudi Arabia
+  tier: 2
+  watched_sources: [gdelt, rss]
+  keywords: ["Mohammed bin Salman", MBS, "Saudi Crown Prince"]
+  high_salience_terms: [OPEC, "production cut", "oil price", Vision 2030]
+  primary_asset_impacts:
+    - {asset: BZ=F, direction_on_positive: LONG}
+    - {asset: XLE, direction_on_positive: LONG}
+  historical_reaction_horizon_hours: 24
+
+- id: erdogan
+  name: Recep Tayyip Erdoğan
+  role: President of Turkey
+  tier: 2
+  watched_sources: [gdelt, rss]
+  keywords: [Erdogan, "Erdoğan", "Turkish President"]
+  high_salience_terms: [lira, "rate decision", NATO, Syria]
+  primary_asset_impacts:
+    - {asset: TUR, direction_on_positive: LONG}
+  historical_reaction_horizon_hours: 24
+
+- id: iran_leadership
+  name: Iran Leadership (Khamenei/Pezeshkian)
+  role: Supreme Leader & President of Iran
+  tier: 2
+  watched_sources: [gdelt, rss]
+  keywords: [Khamenei, Pezeshkian, "Iran's Supreme Leader", "Iranian President"]
+  high_salience_terms: [nuclear, strike, sanctions, "Strait of Hormuz"]
+  primary_asset_impacts:
+    - {asset: BZ=F, direction_on_positive: LONG}
+    - {asset: GLD, direction_on_positive: LONG}
+  historical_reaction_horizon_hours: 24
+
+- id: macron
+  name: Emmanuel Macron
+  role: President of France
+  tier: 2
+  watched_sources: [gdelt, rss]
+  keywords: [Macron, "French President"]
+  high_salience_terms: [EU, Ukraine, defense, nuclear]
+  primary_asset_impacts:
+    - {asset: EWQ, direction_on_positive: LONG}
+    - {asset: FEZ, direction_on_positive: LONG}
+  historical_reaction_horizon_hours: 24
+
+- id: merz
+  name: Friedrich Merz
+  role: Chancellor of Germany
+  tier: 2
+  watched_sources: [gdelt, rss]
+  keywords: [Merz, "German Chancellor"]
+  high_salience_terms: [fiscal, "debt brake", defense, EU]
+  primary_asset_impacts:
+    - {asset: EWG, direction_on_positive: LONG}
+    - {asset: FEZ, direction_on_positive: LONG}
+  historical_reaction_horizon_hours: 24
+
+- id: meloni
+  name: Giorgia Meloni
+  role: Prime Minister of Italy
+  tier: 2
+  watched_sources: [gdelt, rss]
+  keywords: [Meloni, "Italian PM"]
+  high_salience_terms: [EU, budget, spread, migration]
+  primary_asset_impacts:
+    - {asset: EWI, direction_on_positive: LONG}
+  historical_reaction_horizon_hours: 24
+
+- id: starmer
+  name: Keir Starmer
+  role: Prime Minister of the United Kingdom
+  tier: 2
+  watched_sources: [gdelt, rss]
+  keywords: [Starmer, "UK PM", "British PM"]
+  high_salience_terms: [budget, Brexit, NHS, tax]
+  primary_asset_impacts:
+    - {asset: EWU, direction_on_positive: LONG}
+    - {asset: GBPUSD=X, direction_on_positive: LONG}
+  historical_reaction_horizon_hours: 24
+
+- id: tusk
+  name: Donald Tusk
+  role: Prime Minister of Poland
+  tier: 2
+  watched_sources: [gdelt, rss]
+  keywords: [Tusk, "Polish PM"]
+  high_salience_terms: [Ukraine, NATO, EU, defense]
+  primary_asset_impacts:
+    - {asset: EPOL, direction_on_positive: LONG}
+  historical_reaction_horizon_hours: 24
+
+- id: modi
+  name: Narendra Modi
+  role: Prime Minister of India
+  tier: 2
+  watched_sources: [gdelt, rss]
+  keywords: [Modi, "Indian PM"]
+  high_salience_terms: [reform, budget, tech, tariff]
+  primary_asset_impacts:
+    - {asset: INDA, direction_on_positive: LONG}
+  historical_reaction_horizon_hours: 24
+
+- id: malhotra
+  name: Sanjay Malhotra
+  role: Reserve Bank of India Governor
+  tier: 2
+  watched_sources: [gdelt, rss]
+  keywords: [Malhotra, "RBI Governor"]
+  high_salience_terms: ["rate decision", rupee, inflation]
+  primary_asset_impacts:
+    - {asset: INR=X, direction_on_positive: SHORT}
+    - {asset: INDA, direction_on_positive: LONG}
+  historical_reaction_horizon_hours: 8
+
+- id: ishiba
+  name: Shigeru Ishiba
+  role: Prime Minister of Japan
+  tier: 2
+  watched_sources: [gdelt, rss]
+  keywords: [Ishiba, "Japanese PM"]
+  high_salience_terms: [stimulus, defense, tariff]
+  primary_asset_impacts:
+    - {asset: EWJ, direction_on_positive: LONG}
+    - {asset: JPY=X, direction_on_positive: SHORT}
+  historical_reaction_horizon_hours: 24
+
+- id: milei
+  name: Javier Milei
+  role: President of Argentina
+  tier: 2
+  watched_sources: [gdelt, rss]
+  keywords: [Milei, "Argentine President"]
+  high_salience_terms: [dollarization, reform, peso, IMF]
+  primary_asset_impacts:
+    - {asset: ARGT, direction_on_positive: LONG}
+  historical_reaction_horizon_hours: 24
+
+- id: lula
+  name: Luiz Inácio Lula da Silva
+  role: President of Brazil
+  tier: 2
+  watched_sources: [gdelt, rss]
+  keywords: [Lula, "Brazilian President"]
+  high_salience_terms: [fiscal, Petrobras, real, reform]
+  primary_asset_impacts:
+    - {asset: EWZ, direction_on_positive: LONG}
+  historical_reaction_horizon_hours: 24
+
+- id: sheinbaum
+  name: Claudia Sheinbaum
+  role: President of Mexico
+  tier: 2
+  watched_sources: [gdelt, rss]
+  keywords: [Sheinbaum, "Mexican President"]
+  high_salience_terms: [USMCA, tariff, peso, cartel]
+  primary_asset_impacts:
+    - {asset: EWW, direction_on_positive: LONG}
+    - {asset: MXN=X, direction_on_positive: SHORT}
+  historical_reaction_horizon_hours: 24
+
+# ─── Tier 3: contextual / international orgs ────────────────────────────────
+
+- id: georgieva
+  name: Kristalina Georgieva
+  role: IMF Managing Director
+  tier: 3
+  watched_sources: [gdelt, rss]
+  keywords: [Georgieva, "IMF MD", "IMF Managing Director"]
+  high_salience_terms: [bailout, "debt relief", outlook, global]
+  primary_asset_impacts:
+    - {asset: EEM, direction_on_positive: LONG}
+  historical_reaction_horizon_hours: 48
+
+- id: okonjo_iweala
+  name: Ngozi Okonjo-Iweala
+  role: WTO Director-General
+  tier: 3
+  watched_sources: [gdelt, rss]
+  keywords: ["Okonjo-Iweala", "WTO DG"]
+  high_salience_terms: [tariff, "trade war", dispute]
+  primary_asset_impacts:
+    - {asset: SPY, direction_on_positive: LONG}
+  historical_reaction_horizon_hours: 48
+
+- id: opec_sec
+  name: OPEC+ Secretary-General
+  role: OPEC+ Secretary-General
+  tier: 3
+  watched_sources: [gdelt, rss]
+  keywords: [OPEC, "OPEC+", "Secretary-General"]
+  high_salience_terms: ["production cut", quota, "oil price"]
+  primary_asset_impacts:
+    - {asset: BZ=F, direction_on_positive: LONG}
+    - {asset: XLE, direction_on_positive: LONG}
+  historical_reaction_horizon_hours: 24
+
+- id: nato_sg
+  name: NATO Secretary-General
+  role: NATO Secretary-General
+  tier: 3
+  watched_sources: [gdelt, rss]
+  keywords: [NATO, "Secretary-General Rutte", Rutte]
+  high_salience_terms: [Ukraine, Russia, defense, "Article 5"]
+  primary_asset_impacts:
+    - {asset: ITA, direction_on_positive: LONG}
+    - {asset: GLD, direction_on_positive: LONG}
+  historical_reaction_horizon_hours: 24

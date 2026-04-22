@@ -1,0 +1,31 @@
+ts,persona,headline,source_url,expected_tickers,notes
+2018-08-24T14:00:00+00:00,powell,Powell signals gradual rate hikes at Jackson Hole,https://www.federalreserve.gov/,TLT SPY,hawkish
+2018-10-03T20:00:00+00:00,powell,Powell says rates are a long way from neutral,https://www.cnbc.com/,TLT SPY,hawkish market drop
+2018-11-28T17:00:00+00:00,powell,Powell says rates just below neutral dovish turn,https://www.reuters.com/,TLT SPY,dovish rally
+2019-01-04T16:30:00+00:00,powell,Powell signals patience on rate hikes,https://www.reuters.com/,TLT SPY,dovish pivot
+2019-03-20T18:00:00+00:00,powell,Fed holds rates steady Powell signals no hikes in 2019,https://www.federalreserve.gov/,TLT SPY,dovish
+2019-06-19T18:00:00+00:00,powell,Powell opens door to rate cuts at June FOMC,https://www.federalreserve.gov/,TLT SPY,dovish
+2019-07-31T18:00:00+00:00,powell,Fed cuts rates for first time since 2008,https://www.federalreserve.gov/,TLT SPY,cut
+2020-03-03T13:00:00+00:00,powell,Fed cuts rates 50bp emergency action on virus,https://www.federalreserve.gov/,TLT SPY,emergency cut
+2020-03-15T21:00:00+00:00,powell,Fed cuts rates to zero launches $700B QE,https://www.federalreserve.gov/,TLT SPY,emergency
+2020-08-27T14:00:00+00:00,powell,Powell unveils new flexible AIT framework at Jackson Hole,https://www.federalreserve.gov/,TLT SPY GLD,dovish
+2021-08-27T14:00:00+00:00,powell,Powell signals taper could begin this year,https://www.federalreserve.gov/,TLT SPY,hawkish slightly
+2021-11-30T17:00:00+00:00,powell,Powell says retire transitory inflation hawkish pivot,https://www.reuters.com/,TLT SPY,hawkish shift
+2022-03-16T18:00:00+00:00,powell,Fed hikes rates first time since 2018,https://www.federalreserve.gov/,TLT SPY,lift-off
+2022-05-04T18:00:00+00:00,powell,Powell rules out 75bp hike at next meeting,https://www.federalreserve.gov/,TLT SPY,dovish surprise
+2022-06-15T18:00:00+00:00,powell,Fed hikes 75bp fastest pace since 1994,https://www.federalreserve.gov/,TLT SPY,shock hike
+2022-08-26T14:00:00+00:00,powell,Powell Jackson Hole pain ahead hawkish speech,https://www.federalreserve.gov/,TLT SPY,hawkish crash
+2022-11-02T18:00:00+00:00,powell,Powell signals higher peak rate after 75bp hike,https://www.federalreserve.gov/,TLT SPY,hawkish
+2022-12-14T19:00:00+00:00,powell,Fed slows to 50bp hike but dot plot more hawkish,https://www.federalreserve.gov/,TLT SPY,mixed
+2023-03-22T18:00:00+00:00,powell,Fed hikes 25bp amid SVB fallout,https://www.federalreserve.gov/,TLT SPY,banking stress
+2023-09-20T18:00:00+00:00,powell,Fed holds rates signals higher for longer,https://www.federalreserve.gov/,TLT SPY,hawkish
+2023-12-13T19:00:00+00:00,powell,Fed dot plot pencils in three 2024 cuts,https://www.federalreserve.gov/,TLT SPY,dovish pivot
+2024-08-23T14:00:00+00:00,powell,Powell signals time has come for rate cuts,https://www.federalreserve.gov/,TLT SPY,dovish
+2024-09-18T18:00:00+00:00,powell,Fed kicks off easing cycle with 50bp cut,https://www.federalreserve.gov/,TLT SPY,big cut
+2024-12-18T19:00:00+00:00,powell,Powell slows cuts 2025 dot plot more hawkish,https://www.federalreserve.gov/,TLT SPY,hawkish
+2025-01-29T19:00:00+00:00,powell,Fed pauses cuts Powell says no rush,https://www.federalreserve.gov/,TLT SPY,hawkish pause
+2025-03-19T18:00:00+00:00,powell,Fed holds rates upgrades inflation forecast,https://www.federalreserve.gov/,TLT SPY,hawkish
+2025-04-16T18:00:00+00:00,powell,Powell says tariffs complicate Fed's job,https://www.federalreserve.gov/,TLT SPY DXY,cautious
+2025-07-30T18:00:00+00:00,powell,Fed holds amid Trump pressure dissents emerge,https://www.federalreserve.gov/,TLT SPY,political pressure
+2025-09-17T18:00:00+00:00,powell,Fed cuts 25bp cites softening labor market,https://www.federalreserve.gov/,TLT SPY,dovish
+2025-12-10T19:00:00+00:00,powell,Powell testifies before House warns on fiscal risks,https://www.federalreserve.gov/,TLT SPY,cautious

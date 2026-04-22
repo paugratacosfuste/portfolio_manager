@@ -1,19 +1,36 @@
 """
 Chatbot tool schemas and executor functions for the agentic chatbot.
-Each tool wraps existing utility functions so Claude can call them dynamically.
-"""
-import json
-from typing import Dict, Any, List
 
-from utils.data_fetcher import fetch_current_prices, fetch_historical_data, fetch_recent_news, fetch_asset_metadata
-from utils.portfolio_metrics import (
-    calculate_portfolio_volatility,
-    calculate_portfolio_beta,
-    calculate_hhi_index,
-    assess_risk_score,
-    calculate_sharpe_ratio,
-    calculate_max_drawdown,
-    calculate_cvar,
+Thin adapter layer: each executor builds an immutable `Portfolio` from the
+chatbot's `{ticker: quantity}` dict (enriched with live metadata) and
+delegates the actual math to `core/portfolio_ops.py`. Streamlit-specific
+caching stays in `utils/data_fetcher.py`; this module is the bridge
+between the chatbot interface and the framework-agnostic core.
+"""
+from typing import Any, Dict
+
+from core.portfolio_ops import (
+    compute_risk_metrics,
+    portfolio_summary,
+    simulate_trade,
+)
+from core.tool_schemas import (
+    AssetPriceResponse,
+    ErrorResponse,
+    HoldingRow,
+    MacroPredictionResponse,
+    MarketNewsResponse,
+    NewsItem,
+    PortfolioSummaryResponse,
+    RiskMetricsResponse,
+    WhatIfResponse,
+)
+from core.types import Holding, Portfolio
+from utils.data_fetcher import (
+    fetch_asset_metadata,
+    fetch_current_prices,
+    fetch_historical_data,
+    fetch_recent_news,
 )
 
 # ── Anthropic-format tool schemas ─────────────────────────────────────────────
@@ -100,143 +117,206 @@ CHATBOT_TOOLS = [
 ]
 
 
+# ── Portfolio adapter ─────────────────────────────────────────────────────────
+
+
+def _build_portfolio(
+    holdings: Dict[str, float],
+    metadata: Dict[str, Dict[str, Any]] | None = None,
+) -> Portfolio:
+    """Build an immutable Portfolio from chatbot `{ticker: qty}` + metadata."""
+    meta = metadata or {}
+    entries = tuple(
+        Holding(
+            ticker=ticker,
+            quantity=qty,
+            asset_class=(meta.get(ticker, {}).get("asset_class") or "Unknown"),
+            sector=meta.get(ticker, {}).get("sector"),
+            region=meta.get(ticker, {}).get("region"),
+        )
+        for ticker, qty in holdings.items()
+        if qty > 0
+    )
+    return Portfolio(holdings=entries)
+
+
 # ── Tool executor functions ───────────────────────────────────────────────────
+
 
 def _execute_get_portfolio_summary(holdings: Dict[str, float]) -> str:
     """Returns portfolio summary with values, weights, and metadata."""
     if not holdings:
-        return json.dumps({"error": "No holdings in portfolio."})
+        return ErrorResponse(error="No holdings in portfolio.").model_dump_json()
 
     tickers = list(holdings.keys())
     prices = fetch_current_prices(tickers)
     metadata = fetch_asset_metadata(tickers)
 
-    total_value = sum(holdings[t] * prices.get(t, 0) for t in tickers)
-    summary = {
-        "total_value": round(total_value, 2),
-        "holdings": [],
-    }
+    portfolio = _build_portfolio(holdings, metadata)
+    summary = portfolio_summary(portfolio, prices)
 
-    for t in tickers:
-        price = prices.get(t, 0)
-        value = holdings[t] * price
-        weight = (value / total_value * 100) if total_value > 0 else 0
-        meta = metadata.get(t, {})
-        summary["holdings"].append({
-            "ticker": t,
-            "quantity": holdings[t],
-            "price": round(price, 2),
-            "value": round(value, 2),
-            "weight_pct": round(weight, 1),
-            "asset_class": meta.get("asset_class", "Unknown"),
-            "sector": meta.get("sector", "Unknown"),
-        })
+    rows = tuple(
+        HoldingRow(
+            ticker=h["ticker"],
+            quantity=h["quantity"],
+            price=round(h["price"], 2),
+            value=round(h["value"], 2),
+            weight_pct=round(h["weight"] * 100, 1),
+            asset_class=h["asset_class"] or "Unknown",
+            sector=h["sector"] or "Unknown",
+        )
+        for h in summary["holdings"]
+    )
 
-    return json.dumps(summary)
+    return PortfolioSummaryResponse(
+        total_value=round(summary["total_value"], 2),
+        holdings=rows,
+    ).model_dump_json()
 
 
 def _execute_get_asset_price(ticker: str) -> str:
     """Returns the current price for a single ticker."""
     prices = fetch_current_prices([ticker])
     price = prices.get(ticker, 0)
-    return json.dumps({"ticker": ticker, "price": round(price, 2)})
+    return AssetPriceResponse(
+        ticker=ticker, price=round(max(price, 0.0), 2)
+    ).model_dump_json()
+
+
+def _historical_frame(tickers: list[str]) -> tuple[Any, list[str]]:
+    """Fetch 1-year historical prices and return (dataframe, valid_tickers)."""
+    hist = fetch_historical_data(tickers, period="1y")
+    valid = [t for t in tickers if t in hist.columns]
+    return hist, valid
 
 
 def _execute_calculate_portfolio_risk(holdings: Dict[str, float]) -> str:
     """Calculates all risk metrics for the current portfolio."""
     if not holdings:
-        return json.dumps({"error": "No holdings in portfolio."})
+        return ErrorResponse(error="No holdings in portfolio.").model_dump_json()
 
     tickers = list(holdings.keys())
     prices = fetch_current_prices(tickers)
-    total_value = sum(holdings[t] * prices.get(t, 0) for t in tickers)
-    weights = {}
-    for t in tickers:
-        weights[t] = (holdings[t] * prices.get(t, 0)) / total_value if total_value > 0 else 0
+    metadata = fetch_asset_metadata(tickers)
+    portfolio = _build_portfolio(holdings, metadata)
 
-    hist = fetch_historical_data(tickers, period="1y")
-    valid = [t for t in tickers if t in hist.columns]
+    hist, valid = _historical_frame(tickers)
+    has_data = len(valid) > 0 and len(hist) > 50
 
-    if len(valid) > 0 and len(hist) > 50:
-        volatility = calculate_portfolio_volatility(hist[valid], weights)
+    market_returns = None
+    if has_data:
         try:
             spy_df = fetch_historical_data(["SPY"], period="1y")
-            mkt = spy_df["SPY"] if "SPY" in spy_df else hist.iloc[:, 0]
-            beta = calculate_portfolio_beta(hist[valid], mkt, weights)
+            market_returns = spy_df["SPY"] if "SPY" in spy_df else hist.iloc[:, 0]
         except Exception:
-            beta = 1.0
-        hhi = calculate_hhi_index(weights)
-        risk_score = assess_risk_score(volatility, hhi, beta, total_value)
-        sharpe = calculate_sharpe_ratio(hist[valid], weights)
-        max_dd = calculate_max_drawdown(hist[valid], weights)
-        cvar = calculate_cvar(hist[valid], weights)
-    else:
-        volatility, beta, hhi, risk_score, sharpe, max_dd, cvar = 0.0, 1.0, calculate_hhi_index(weights), 50, 0.0, 0.0, 0.0
+            market_returns = None
 
-    return json.dumps({
-        "total_value": round(total_value, 2),
-        "volatility_pct": round(volatility * 100, 1),
-        "beta": round(beta, 2),
-        "hhi": round(hhi, 0),
-        "risk_score": risk_score,
-        "sharpe_ratio": round(sharpe, 2),
-        "max_drawdown_pct": round(max_dd * 100, 1),
-        "cvar_95_pct": round(cvar * 100, 2),
-    })
+    hist_for_metrics = hist[valid] if has_data else hist.iloc[0:0]
+    metrics = compute_risk_metrics(
+        portfolio=portfolio,
+        prices=prices,
+        historical_prices=hist_for_metrics,
+        market_returns=market_returns,
+    )
+
+    # Fallback for sparse-data case: keep the legacy "risk_score=50" default
+    risk_score = metrics["risk_score"] if has_data else 50
+    # Schema requires max_drawdown_pct ≤ 0 (it's a loss)
+    max_dd_pct = min(round(metrics["max_drawdown"] * 100, 1), 0.0)
+    # Schema caps hhi at 10000 (100% concentration in one asset)
+    hhi = min(max(round(metrics["hhi"], 0), 0.0), 10000.0)
+
+    return RiskMetricsResponse(
+        total_value=round(metrics["total_value"], 2),
+        volatility_pct=round(metrics["volatility"] * 100, 1),
+        beta=round(metrics["beta"], 2),
+        hhi=hhi,
+        risk_score=int(max(0, min(100, risk_score))),
+        sharpe_ratio=round(metrics["sharpe"], 2),
+        max_drawdown_pct=max_dd_pct,
+        cvar_95_pct=round(metrics["cvar"] * 100, 2),
+    ).model_dump_json()
 
 
-def _execute_what_if_analysis(holdings: Dict[str, float], action: str, ticker: str, quantity: float) -> str:
+def _execute_what_if_analysis(
+    holdings: Dict[str, float], action: str, ticker: str, quantity: float
+) -> str:
     """Simulates adding/removing an asset and returns new risk metrics."""
-    simulated = dict(holdings)
+    if action not in ("add", "remove"):
+        return ErrorResponse(
+            error=f"Unknown action '{action}'. Must be 'add' or 'remove'."
+        ).model_dump_json()
+    if quantity <= 0:
+        return ErrorResponse(
+            error="Quantity must be greater than zero."
+        ).model_dump_json()
 
-    if action == "add":
-        simulated[ticker] = simulated.get(ticker, 0) + quantity
-    elif action == "remove":
-        if ticker in simulated:
-            simulated[ticker] = max(0, simulated[ticker] - quantity)
-            if simulated[ticker] == 0:
-                del simulated[ticker]
-        else:
-            return json.dumps({"error": f"{ticker} not in portfolio, cannot remove."})
+    metadata = fetch_asset_metadata(list(set(list(holdings.keys()) + [ticker])))
+    current = _build_portfolio(holdings, metadata)
 
-    if not simulated:
-        return json.dumps({"error": "Portfolio would be empty after this change."})
+    qty_delta = quantity if action == "add" else -quantity
+    try:
+        new_portfolio = simulate_trade(
+            current,
+            ticker,
+            qty_delta=qty_delta,
+            asset_class=(metadata.get(ticker, {}).get("asset_class") or "Unknown"),
+        )
+    except ValueError:
+        return ErrorResponse(
+            error=f"{ticker} not in portfolio, cannot remove."
+        ).model_dump_json()
 
-    # Calculate new metrics
-    tickers = list(simulated.keys())
-    prices = fetch_current_prices(tickers)
-    total_value = sum(simulated[t] * prices.get(t, 0) for t in tickers)
-    weights = {}
-    for t in tickers:
-        weights[t] = (simulated[t] * prices.get(t, 0)) / total_value if total_value > 0 else 0
+    if not new_portfolio.holdings:
+        return ErrorResponse(
+            error="Portfolio would be empty after this change."
+        ).model_dump_json()
 
-    hist = fetch_historical_data(tickers, period="1y")
-    valid = [t for t in tickers if t in hist.columns]
+    new_tickers = [h.ticker for h in new_portfolio.holdings]
+    prices = fetch_current_prices(new_tickers)
 
-    if len(valid) > 0 and len(hist) > 50:
-        volatility = calculate_portfolio_volatility(hist[valid], weights)
-        sharpe = calculate_sharpe_ratio(hist[valid], weights)
-        max_dd = calculate_max_drawdown(hist[valid], weights)
-    else:
-        volatility, sharpe, max_dd = 0.0, 0.0, 0.0
+    hist, valid = _historical_frame(new_tickers)
+    has_data = len(valid) > 0 and len(hist) > 50
+    hist_for_metrics = hist[valid] if has_data else hist.iloc[0:0]
 
-    return json.dumps({
-        "action": action,
-        "ticker": ticker,
-        "quantity": quantity,
-        "new_total_value": round(total_value, 2),
-        "new_volatility_pct": round(volatility * 100, 1),
-        "new_sharpe_ratio": round(sharpe, 2),
-        "new_max_drawdown_pct": round(max_dd * 100, 1),
-        "new_weights": {t: round(w * 100, 1) for t, w in weights.items()},
-    })
+    metrics = compute_risk_metrics(
+        portfolio=new_portfolio,
+        prices=prices,
+        historical_prices=hist_for_metrics,
+        market_returns=None,
+    )
+
+    summary = portfolio_summary(new_portfolio, prices)
+    new_weights = {
+        row["ticker"]: round(row["weight"] * 100, 1) for row in summary["holdings"]
+    }
+
+    return WhatIfResponse(
+        action=action,  # type: ignore[arg-type]
+        ticker=ticker,
+        quantity=quantity,
+        new_total_value=round(metrics["total_value"], 2),
+        new_volatility_pct=round(metrics["volatility"] * 100, 1),
+        new_sharpe_ratio=round(metrics["sharpe"], 2),
+        new_max_drawdown_pct=round(metrics["max_drawdown"] * 100, 1),
+        new_weights=new_weights,
+    ).model_dump_json()
 
 
 def _execute_get_market_news(ticker: str) -> str:
     """Fetches recent news for a ticker."""
     news = fetch_recent_news([ticker], limit=5)
-    items = news.get(ticker, [])
-    return json.dumps({"ticker": ticker, "news": items[:5]})
+    raw_items = news.get(ticker, [])[:5]
+    items = tuple(
+        NewsItem(
+            title=(item.get("title") or "Untitled"),
+            link=(item.get("link") or ""),
+            publisher=(item.get("publisher") or ""),
+            timestamp=(item.get("timestamp") or ""),
+        )
+        for item in raw_items
+    )
+    return MarketNewsResponse(ticker=ticker, news=items).model_dump_json()
 
 
 def _execute_get_macro_prediction() -> str:
@@ -244,43 +324,49 @@ def _execute_get_macro_prediction() -> str:
     Uses centralized feature engineering from ml_pipeline.features."""
     try:
         import joblib
+
         from ml_pipeline.features import get_latest_macro_features
 
         model = joblib.load("ml_pipeline/macro_risk_model.joblib")
 
-        # Use centralized feature engineering (v1 = original 12 features for existing model)
         latest_data = get_latest_macro_features(feature_version=1)
 
         prediction = int(model.predict(latest_data)[0])
         probability = float(model.predict_proba(latest_data)[0][1])
 
-        return json.dumps({
-            "prediction": "Market correction likely" if prediction == 1 else "Market stable",
-            "correction_probability_pct": round(probability * 100, 1),
-            "current_vix": round(float(latest_data['VIX'].iloc[0]), 1),
-            "sp500_vs_200ma_pct": round(float(latest_data['SP500_200d_ma_diff'].iloc[0] * 100), 1),
-        })
+        return MacroPredictionResponse(
+            prediction="Market correction likely" if prediction == 1 else "Market stable",
+            correction_probability_pct=round(probability * 100, 1),
+            current_vix=max(round(float(latest_data["VIX"].iloc[0]), 1), 0.0),
+            sp500_vs_200ma_pct=round(
+                float(latest_data["SP500_200d_ma_diff"].iloc[0] * 100), 1
+            ),
+        ).model_dump_json()
     except Exception as e:
-        return json.dumps({"error": f"Could not run macro prediction: {str(e)}"})
+        return ErrorResponse(
+            error=f"Could not run macro prediction: {str(e)}"
+        ).model_dump_json()
 
 
 # ── Dispatcher ────────────────────────────────────────────────────────────────
 
-def execute_tool(tool_name: str, tool_input: Dict[str, Any], holdings: Dict[str, float]) -> str:
+
+def execute_tool(
+    tool_name: str, tool_input: Dict[str, Any], holdings: Dict[str, float]
+) -> str:
     """Dispatches a tool call to the appropriate executor function."""
     if tool_name == "get_portfolio_summary":
         return _execute_get_portfolio_summary(holdings)
-    elif tool_name == "get_asset_price":
+    if tool_name == "get_asset_price":
         return _execute_get_asset_price(tool_input["ticker"])
-    elif tool_name == "calculate_portfolio_risk":
+    if tool_name == "calculate_portfolio_risk":
         return _execute_calculate_portfolio_risk(holdings)
-    elif tool_name == "what_if_analysis":
+    if tool_name == "what_if_analysis":
         return _execute_what_if_analysis(
             holdings, tool_input["action"], tool_input["ticker"], tool_input["quantity"]
         )
-    elif tool_name == "get_market_news":
+    if tool_name == "get_market_news":
         return _execute_get_market_news(tool_input["ticker"])
-    elif tool_name == "get_macro_prediction":
+    if tool_name == "get_macro_prediction":
         return _execute_get_macro_prediction()
-    else:
-        return json.dumps({"error": f"Unknown tool: {tool_name}"})
+    return ErrorResponse(error=f"Unknown tool: {tool_name}").model_dump_json()
